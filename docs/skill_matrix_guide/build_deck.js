@@ -60,8 +60,19 @@ const SCORES = [
   [2, 1, 1, 3, 0, 1, 3],
   [3, 2, 4, 2, 2, 3, 1],
 ];
-const TARGET = [3, 5, 6, 4, 4, 3, 2];
-const QUAL = SKILLS.map((_, j) => SCORES.filter((r) => r[j] >= 3).length);
+// Plant-wide (all departments) illustrative totals
+const DEPTS = ["Mixing", "Packaging", "Sanitation", "Warehouse", "Quality", "Maintenance"];
+const DEPT_QUAL = [
+  [6, 0, 4, 1, 2, 0, 0],
+  [0, 8, 5, 1, 3, 4, 1],
+  [0, 0, 3, 8, 0, 0, 0],
+  [0, 0, 1, 0, 0, 0, 5],
+  [1, 1, 3, 1, 2, 2, 0],
+  [2, 1, 0, 0, 0, 1, 0],
+];
+const TARGET = [8, 12, 20, 10, 9, 6, 5];
+const QUAL = SKILLS.map((_, j) => DEPT_QUAL.reduce((a, r) => a + r[j], 0));
+const PDEPT = ["Mixing", "Packaging", "Packaging", "Mixing", "Warehouse", "Sanitation", "Sanitation", "Quality"];
 const LEVEL_FILL = ["F4C7C3", "FCE4B6", "FFF2CC", "CFE8D5", "8CCB9F"];
 const LEVEL_TXT = ["8A1C14", "7A4A00", "6B5A00", "1D5B35", "0E3B27"];
 const LEVELS = [
@@ -115,13 +126,13 @@ function content(section, kicker, title) {
 function card(slide, x, y, w, h, name, fill = C.background2) {
   slide.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w, h, fill: { color: fill }, line: { color: fill }, rectRadius: 0.1, objectName: name });
 }
-function formulaBox(slide, x, y, w, label, formula, cellRef, name) {
+function formulaBox(slide, x, y, w, label, formula, cellRef, name, fsz = 15) {
   slide.addText(label, { x, y, w, h: 0.35, fontSize: 15, bold: true, color: C.text2, margin: 0, isTextBox: true, objectName: name + " label" });
   // Excel-style formula bar
   slide.addShape(pres.shapes.RECTANGLE, { x, y: 0.4 + y, w, h: 0.5, fill: { color: "FFFFFF" }, line: { color: XL_LINE, width: 1 }, objectName: name + " bar" });
   slide.addText(cellRef, { x: x + 0.08, y: 0.4 + y, w: 0.6, h: 0.5, fontSize: 13, color: "595959", fontFace: "Courier New", valign: "middle", margin: 0, isTextBox: true, objectName: name + " ref" });
   slide.addText("fx", { x: x + 0.72, y: 0.4 + y, w: 0.35, h: 0.5, fontSize: 13, italic: true, color: H.accent5, valign: "middle", margin: 0, isTextBox: true, objectName: name + " fx" });
-  slide.addText(formula, { x: x + 1.1, y: 0.4 + y, w: w - 1.2, h: 0.5, fontSize: 15, bold: true, color: C.accent1, fontFace: "Courier New", valign: "middle", margin: 0, isTextBox: true, objectName: name + " formula" });
+  slide.addText(formula, { x: x + 1.1, y: 0.4 + y, w: w - 1.2, h: 0.5, fontSize: fsz, bold: true, color: C.accent1, fontFace: "Courier New", valign: "middle", margin: 0, isTextBox: true, objectName: name + " formula" });
 }
 
 // ================= SLIDES =================
@@ -131,7 +142,7 @@ pres.addSection({ title: "Introduction" });
   const s = pres.addSlide({ masterName: "TITLE_DARK", sectionTitle: "Introduction" });
   s.addText("Building a Skill Matrix in Excel", { placeholder: "title" });
   s.addText([
-    { text: "A step-by-step guide for C.H. Guenther teams", options: { breakLine: true } },
+    { text: "A step-by-step guide to a plant-wide matrix for C.H. Guenther", options: { breakLine: true } },
     { text: "Training & Quality  |  November 2026", options: { fontSize: 14, color: "9FC3AD" } },
   ], { placeholder: "body" });
   // decorative heat-map of skill levels
@@ -139,14 +150,14 @@ pres.addSection({ title: "Introduction" });
   SCORES.forEach((r, i) => r.forEach((v, j) => {
     s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: gx + j * (sz + gap), y: gy + i * (sz + gap), w: sz, h: sz, rectRadius: 0.06, fill: { color: LEVEL_FILL[v] }, line: { color: LEVEL_FILL[v] }, objectName: `heat ${i}-${j}` });
   }));
-  s.addNotes("Today I'll walk through exactly how I built our skill matrix in Excel, step by step, so any supervisor can build or maintain one for their own area.");
+  s.addNotes("Today I'll walk through exactly how I built our plant-wide skill matrix in Excel, step by step: one workbook that covers every department, shift and employee in the plant.");
 }
 
 // 2. Why
 {
   const s = content("Introduction", "WHY IT MATTERS", "One sheet that shows who can do what");
   const items = [
-    ["See coverage at a glance", "Colour-coded levels show instantly which tasks have enough qualified people on every shift."],
+    ["See coverage at a glance", "Colour-coded levels show instantly which tasks have enough qualified people across every department and shift."],
     ["Plan training & cross-training", "Gaps become a training plan: who to train next, on what, and who can train them."],
     ["Prove competence in audits", "Gives SQF / BRCGS and customer auditors clear evidence that people are trained for their roles."],
   ];
@@ -158,7 +169,7 @@ pres.addSection({ title: "Introduction" });
     s.addText(h, { x: x + 0.35, y: y + 1.2, w: cw - 0.7, h: 0.8, fontSize: 21, bold: true, color: C.text2, valign: "top", margin: 0, isTextBox: true, fontFace: THEME.headFontFace, objectName: `why head ${i + 1}` });
     s.addText(b, { x: x + 0.35, y: y + 2.05, w: cw - 0.7, h: 1.6, fontSize: 16, color: C.text1, valign: "top", margin: 0, isTextBox: true, objectName: `why body ${i + 1}` });
   });
-  s.addText("Tip: build it for one production line first, then copy the workbook to other areas.", { x: M, y: 6.2, w: W - 2 * M, h: 0.4, fontSize: 15, italic: true, color: C.accent1, margin: 0, isTextBox: true, objectName: "why tip" });
+  s.addText("Plant-wide: one workbook for every department, so a gap in one area can be covered by trained people from another.", { x: M, y: 6.2, w: W - 2 * M, h: 0.4, fontSize: 15, italic: true, color: C.accent1, margin: 0, isTextBox: true, objectName: "why tip" });
   s.addNotes("A skill matrix answers three questions: who can do each task, where are we exposed if someone is absent, and how do we prove competence to auditors.");
 }
 
@@ -166,7 +177,7 @@ pres.addSection({ title: "Introduction" });
 {
   const s = content("Introduction", "THE ROADMAP", "Eight steps from blank sheet to live matrix");
   const ST = [
-    ["Scope & people", "Pick the area, list employees"],
+    ["Scope & people", "Whole plant, every employee"],
     ["List the skills", "Tasks from SOPs & HACCP plan"],
     ["Set the rating scale", "0 = not trained … 4 = trainer"],
     ["Build the grid", "People down, skills across"],
@@ -184,26 +195,26 @@ pres.addSection({ title: "Introduction" });
     s.addText(h, { x: x + 0.3, y: y + 1.0, w: tw - 0.5, h: 0.45, fontSize: 18, bold: true, color: C.text2, margin: 0, isTextBox: true, objectName: `road head ${i + 1}` });
     s.addText(b, { x: x + 0.3, y: y + 1.45, w: tw - 0.5, h: 0.5, fontSize: 14, color: C.text1, margin: 0, isTextBox: true, objectName: `road body ${i + 1}` });
   });
-  s.addNotes("Here is the whole journey on one slide. Steps 1 to 3 are planning, 4 to 6 build the sheet, 7 and 8 turn it into a management tool.");
+  s.addNotes("Here is the whole journey on one slide, applied to the entire plant. Steps 1 to 3 are planning, 4 to 6 build the sheet, 7 and 8 turn it into a management tool.");
 }
 
 // 4. Step 1
 pres.addSection({ title: "Build the matrix" });
 {
-  const s = content("Build the matrix", "STEP 1", "Define the scope and list your people");
+  const s = content("Build the matrix", "STEP 1", "Cover the whole plant and list everyone");
   bulletList(s, [
-    [{ text: "Choose one area: ", options: { bold: true } }, { text: "a department, line or shift (e.g. Mixing & Packaging, Line 3)." }],
+    [{ text: "Scope = the whole plant: ", options: { bold: true } }, { text: "Mixing, Packaging, Sanitation, Warehouse, Quality and Maintenance, all shifts." }],
     [{ text: "Pull the roster from HR ", options: { bold: true } }, { text: "so names and IDs match training records." }],
-    [{ text: "Capture the basics: ", options: { bold: true } }, { text: "Employee ID, Name, Role, Shift, Start date." }],
+    [{ text: "Capture the basics: ", options: { bold: true } }, { text: "Employee ID, Name, Department, Role, Shift." }],
     [{ text: "Include temps and new hires ", options: { bold: true } }, { text: "– they are often your biggest gap." }],
   ], M, 1.95, 5.2, 4.5, "step1 bullets");
   const rows = [
-    ["Emp ID", "Name", "Role", "Shift", "Start date"].map((t) => cell(t, { bold: true, fill: { color: H.accent1 }, color: "FFFFFF" })),
-    ...PEOPLE.map((p, i) => [cell(1040 + i * 7), cell(p), cell(["Operator", "Lead", "Operator", "Supervisor", "Operator", "Temp", "Sanitation", "QA Tech"][i]), cell(i % 3 === 0 ? "A" : i % 3 === 1 ? "B" : "C", { align: "center" }), cell(["03/2019", "07/2016", "01/2022", "11/2014", "05/2023", "09/2026", "02/2021", "06/2018"][i], { align: "center" })]),
+    ["Emp ID", "Name", "Department", "Role", "Shift"].map((t) => cell(t, { bold: true, fill: { color: H.accent1 }, color: "FFFFFF" })),
+    ...PEOPLE.map((p, i) => [cell(1040 + i * 7), cell(p), cell(PDEPT[i]), cell(["Operator", "Lead", "Operator", "Supervisor", "Driver", "Temp", "Sanitor", "QA Tech"][i]), cell(i % 3 === 0 ? "A" : i % 3 === 1 ? "B" : "C", { align: "center" })]),
   ];
-  excelGrid(s, 6.3, 1.95, [0.95, 1.35, 1.35, 0.75, 1.1], 0.42, rows, 1, "step1 grid");
-  s.addText("Sheet: “Employees”", { x: 6.3, y: 6.3, w: 6, h: 0.35, fontSize: 12, italic: true, color: H.accent5, margin: 0, isTextBox: true, objectName: "step1 caption" });
-  s.addNotes("Start small. I started with one area and pulled the official roster from HR so that names and IDs match our training records exactly.");
+  excelGrid(s, 6.3, 1.95, [0.9, 1.25, 1.4, 1.25, 0.7], 0.42, rows, 1, "step1 grid");
+  s.addText("Sheet: “Employees”  –  one row per person in the plant (example rows shown)", { x: 6.3, y: 6.3, w: 6.4, h: 0.35, fontSize: 12, italic: true, color: H.accent5, margin: 0, isTextBox: true, objectName: "step1 caption" });
+  s.addNotes("The matrix covers the whole plant. I pulled the official roster from HR for every department and shift so names and IDs match our training records, and added a Department column so we can filter and roll up later.");
 }
 
 // 5. Step 2
@@ -211,9 +222,9 @@ pres.addSection({ title: "Build the matrix" });
   const s = content("Build the matrix", "STEP 2", "List the skills that really matter");
   bulletList(s, [
     [{ text: "Source the tasks ", options: { bold: true } }, { text: "from SOPs, job descriptions, the HACCP / food safety plan and customer requirements." }],
-    [{ text: "Group by category: ", options: { bold: true } }, { text: "Food Safety, Production, Equipment, Quality." }],
-    [{ text: "Keep it focused: ", options: { bold: true } }, { text: "10–25 skills per area is easy to read and maintain." }],
-    [{ text: "Set a target ", options: { bold: true } }, { text: "– the minimum number of qualified people each skill needs to cover all shifts." }],
+    [{ text: "Plant-wide vs department skills: ", options: { bold: true } }, { text: "GMP and Allergen Control apply to everyone; Mixer Setup only to Mixing." }],
+    [{ text: "Keep it focused: ", options: { bold: true } }, { text: "group by category (Food Safety, Production, Equipment, Quality) to stay readable." }],
+    [{ text: "Set a target ", options: { bold: true } }, { text: "– the plant-wide minimum of qualified people each skill needs to cover all shifts." }],
   ], M, 1.95, 5.2, 4.6, "step2 bullets");
   const cats = ["Production", "Production", "Food Safety", "Food Safety", "Food Safety", "Quality", "Equipment"];
   const src = ["SOP-MX-01", "SOP-PK-04", "Allergen Plan", "SSOP-02", "HACCP Plan", "SOP-QA-07", "Safety-12"];
@@ -247,17 +258,17 @@ pres.addSection({ title: "Build the matrix" });
 // 7. Step 4 – build the grid
 {
   const s = content("Build the matrix", "STEP 4", "Build the grid: people down, skills across");
-  const head = [cell("Name", { bold: true, fill: { color: H.accent1 }, color: "FFFFFF" }), cell("Role", { bold: true, fill: { color: H.accent1 }, color: "FFFFFF" }), ...SHORT.map((t) => cell(t, { bold: true, fill: { color: H.accent1 }, color: "FFFFFF", align: "center", fontSize: 11 }))];
-  const rows = [head, ...PEOPLE.slice(0, 6).map((p, i) => [cell(p), cell(["Operator", "Lead", "Operator", "Superv.", "Operator", "Temp"][i]), ...SCORES[i].map((v) => cell(v, { align: "center" }))])];
-  excelGrid(s, M, 1.95, [1.15, 0.95, ...SHORT.map(() => 0.78)], 0.45, rows, 4, "step4 grid");
+  const head = [cell("Name", { bold: true, fill: { color: H.accent1 }, color: "FFFFFF" }), cell("Department", { bold: true, fill: { color: H.accent1 }, color: "FFFFFF" }), ...SHORT.map((t) => cell(t, { bold: true, fill: { color: H.accent1 }, color: "FFFFFF", align: "center", fontSize: 11 }))];
+  const rows = [head, ...PEOPLE.slice(0, 6).map((p, i) => [cell(p), cell(PDEPT[i]), ...SCORES[i].map((v) => cell(v, { align: "center" }))])];
+  excelGrid(s, M, 1.95, [1.1, 1.15, ...SHORT.map(() => 0.75)], 0.45, rows, 4, "step4 grid");
   steps(s, [
-    "Names in column A, role in B; skills across row 4 (link them to the Skills sheet).",
+    "Names in column A, department in B; skills across row 4 (linked to the Skills sheet).",
     "Select the header row → Home › Orientation › Rotate Text Up for narrow columns.",
     "Click C5 → View › Freeze Panes so names and skills stay visible.",
-    "Select the range → Ctrl + T to make it a Table (auto-extends for new rows).",
+    "Ctrl + T to make it a Table, then filter column B to see one department.",
   ], 8.85, 1.95, W - M - 8.85, 1.12, "step4 steps");
   s.addText("Sheet: “Matrix”  –  scores start in cell C5", { x: M, y: 5.7, w: 7, h: 0.35, fontSize: 12, italic: true, color: H.accent5, margin: 0, isTextBox: true, objectName: "step4 caption" });
-  s.addNotes("This is the heart of the workbook. Each row is a person, each column a skill, and each cell holds a 0–4 score. Freeze panes and an Excel Table make it much easier to use.");
+  s.addNotes("This is the heart of the workbook. Each row is a person anywhere in the plant, each column a skill, and each cell holds a 0–4 score. Freeze panes and an Excel Table make it much easier to use.");
 }
 
 // 8. Step 5 – data validation
@@ -318,9 +329,9 @@ pres.addSection({ title: "Analyse & maintain" });
 {
   const s = content("Analyse & maintain", "STEP 7", "Add formulas that turn scores into gaps");
   const fw = 5.8;
-  formulaBox(s, M, 1.85, fw, "Qualified people per skill (row 14)", '=COUNTIF(C5:C12,">=3")', "C14", "f1");
-  formulaBox(s, M, 2.95, fw, "Gap against target (row 15)", "=C14-C13", "C15", "f2");
-  formulaBox(s, M, 4.05, fw, "Status flag (row 16)", '=IF(C15<0,"GAP","OK")', "C16", "f3");
+  formulaBox(s, M, 1.85, fw, "Qualified people plant-wide (row 303)", '=COUNTIF(C$5:C$300,">=3")', "C303", "f1");
+  formulaBox(s, M, 2.95, fw, "Gap against target (row 304)", "=C303-C302", "C304", "f2");
+  formulaBox(s, M, 4.05, fw, "Status flag (row 305)", '=IF(C304<0,"GAP","OK")', "C305", "f3");
   formulaBox(s, M, 5.15, fw, "Versatility per person (column J)", '=COUNTIF(C5:I5,">=3")', "J5", "f4");
   // summary rows grid
   const lab = (t) => cell(t, { bold: true, fill: { color: "F2F2F2" } });
@@ -331,12 +342,34 @@ pres.addSection({ title: "Analyse & maintain" });
     [lab("Gap"), ...QUAL.map((v, j) => cell(v - TARGET[j], { align: "center", color: v - TARGET[j] < 0 ? "C0504D" : H.dk1 }))],
     [lab("Status"), ...QUAL.map((v, j) => { const g = v < TARGET[j]; return cell(g ? "GAP" : "OK", { align: "center", bold: true, fontSize: 11, fill: { color: g ? LEVEL_FILL[0] : LEVEL_FILL[3] }, color: g ? LEVEL_TXT[0] : LEVEL_TXT[3] }); })],
   ];
-  excelGrid(s, 6.85, 1.85, [1.05, ...SHORT.map(() => 0.63)], 0.5, rows, 12, "f grid", "BCDEFGHIJ".split(""));
+  excelGrid(s, 6.85, 1.85, [1.05, ...SHORT.map(() => 0.63)], 0.5, rows, 301, "f grid", "BCDEFGHIJ".split(""));
   s.addText([
     { text: "Copy across with the fill handle. ", options: { bold: true } },
     { text: "Press F4 to lock references (e.g. $C$5) when a formula must always point to the same cell." },
   ], { x: 6.85, y: 4.75, w: W - M - 6.85, h: 1.0, fontSize: 15, color: C.text1, margin: 0, isTextBox: true, objectName: "f tip" });
-  s.addNotes("COUNTIF counts how many people are at level 3 or above. Subtract the target to get the gap, and an IF formula flags the skill as GAP or OK. Here Packaging, Allergen Control and CCP Monitoring are short.");
+  s.addNotes("COUNTIF counts how many people are at level 3 or above. Subtract the target to get the gap, and an IF formula flags the skill as GAP or OK. Across the plant, Packaging, Allergen Control and CCP Monitoring are short.");
+}
+
+// Step 7b – department roll-up
+{
+  const s = content("Analyse & maintain", "STEP 7 (CONTINUED)", "Roll it up by department");
+  formulaBox(s, M, 1.85, 5.6, "Qualified per department and skill", '=COUNTIFS(Dept,$A5,Matrix!C$5:C$300,">=3")', "B5", "fd1", 12);
+  bulletList(s, [
+    [{ text: "New sheet “By Department”: ", options: { bold: true } }, { text: "departments down column A, skills across row 4. Name Matrix!B5:B300 “Dept” (Formulas › Define Name)." }],
+    [{ text: "COUNTIFS ", options: { bold: true } }, { text: "counts people in that department who are level 3 or 4." }],
+    [{ text: "Red cells ", options: { bold: true } }, { text: "show a department relying on one person – plan cross-training from other areas." }],
+    [{ text: "Quick option: ", options: { bold: true } }, { text: "Insert › PivotTable, or add a Slicer on Department to the Matrix table." }],
+  ], M, 3.05, 5.6, 3.6, "fd bullets", 15);
+  const fillFor = (v) => (v === 0 ? "F2F2F2" : v === 1 ? LEVEL_FILL[0] : v === 2 ? LEVEL_FILL[2] : LEVEL_FILL[3]);
+  const txtFor = (v) => (v === 0 ? "A6A6A6" : v === 1 ? LEVEL_TXT[0] : v === 2 ? LEVEL_TXT[2] : LEVEL_TXT[3]);
+  const rows = [
+    [cell("Department", { bold: true, fill: { color: H.accent1 }, color: "FFFFFF" }), ...SHORT.map((t) => cell(t, { bold: true, fill: { color: H.accent1 }, color: "FFFFFF", align: "center", fontSize: 11 }))],
+    ...DEPTS.map((d, i) => [cell(d), ...DEPT_QUAL[i].map((v) => cell(v === 0 ? "–" : v, { align: "center", bold: v > 0, fill: { color: fillFor(v) }, color: txtFor(v) }))]),
+    [cell("Plant total", { bold: true, fill: { color: "F2F2F2" } }), ...QUAL.map((v) => cell(v, { align: "center", bold: true, fill: { color: "F2F2F2" } }))],
+  ];
+  excelGrid(s, 6.45, 1.85, [1.25, ...SHORT.map(() => 0.66)], 0.5, rows, 4, "fd grid");
+  s.addText("–  skill not used in that department     red = only 1 qualified person", { x: 6.45, y: 6.5, w: 6.25, h: 0.35, fontSize: 12, italic: true, color: H.accent5, margin: 0, isTextBox: true, objectName: "fd caption" });
+  s.addNotes("Because the matrix is plant-wide, one COUNTIFS formula rolls it up by department. This shows where a department depends on a single person, for example Maintenance on Mixer Setup, and where we can borrow trained people from another area.");
 }
 
 // 11. Step 8a – chart
@@ -348,10 +381,10 @@ pres.addSection({ title: "Analyse & maintain" });
   ], {
     x: M, y: 1.75, w: 8.2, h: 4.95, barDir: "col", barGapWidthPct: 60,
     chartColors: [H.accent1, "C9D3CD"],
-    showTitle: true, title: "Qualified people per skill vs target", titleFontSize: 14, titleColor: H.dk2, titleFontFace: "+mn-lt",
+    showTitle: true, title: "Plant-wide: qualified people per skill vs target", titleFontSize: 14, titleColor: H.dk2, titleFontFace: "+mn-lt",
     showValue: true, dataLabelPosition: "outEnd", dataLabelFontSize: 11, dataLabelColor: H.dk1, dataLabelFontFace: "+mn-lt",
     catAxisLabelColor: "595959", valAxisLabelColor: "595959", catAxisLabelFontSize: 11, valAxisLabelFontSize: 11, catAxisLabelFontFace: "+mn-lt", valAxisLabelFontFace: "+mn-lt",
-    valGridLine: { color: "E5E5E5", size: 0.75 }, catGridLine: { style: "none" }, valAxisMinVal: 0, valAxisMaxVal: 7, valAxisMajorUnit: 1,
+    valGridLine: { color: "E5E5E5", size: 0.75 }, catGridLine: { style: "none" }, valAxisMinVal: 0, valAxisMaxVal: 22, valAxisMajorUnit: 4,
     showLegend: true, legendPos: "b", legendFontSize: 12, legendFontFace: "+mn-lt", legendColor: H.dk1,
     objectName: "gap chart",
   });
@@ -359,9 +392,9 @@ pres.addSection({ title: "Analyse & maintain" });
     "Select skill names + Qualified and Target rows.",
     "Insert › Recommended Charts › Clustered Column.",
     "Add a title and data labels (Chart Design › Add Chart Element).",
-    "Put the chart on a “Dashboard” sheet for meetings.",
+    "Put it on a “Dashboard” sheet for the plant meeting.",
   ], 9.25, 1.95, W - M - 9.25, 1.15, "chart steps");
-  s.addNotes("A simple clustered column chart shows where qualified headcount is below target. In this example Allergen Control, Packaging and CCP Monitoring need training first.");
+  s.addNotes("A simple clustered column chart shows where qualified headcount is below target. Across the plant, Allergen Control, Packaging and CCP Monitoring need training first.");
 }
 
 // 12. Step 8b – protect & maintain
@@ -370,8 +403,8 @@ pres.addSection({ title: "Analyse & maintain" });
   const items = [
     ["Protect the sheet", "Unlock only the score cells (Ctrl + 1 › Protection), then Review › Protect Sheet with a password."],
     ["Track expiry dates", "Add a “Last trained” sheet:  =IF(TODAY()-D5>365,\"Retrain\",\"OK\")  to flag annual refreshers."],
-    ["Review on a schedule", "Supervisors update monthly; review gaps in the quarterly management review."],
-    ["Control the document", "Save on SharePoint / Teams, record revision date and approver in the footer."],
+    ["Review on a schedule", "Each department supervisor updates their rows monthly; plant leadership reviews gaps quarterly."],
+    ["Control the document", "One master file on SharePoint / Teams for the plant; record revision date and approver."],
   ];
   const cw = (W - 2 * M - 0.4) / 2, ch = 2.1;
   items.forEach(([h, b], i) => {
@@ -411,12 +444,12 @@ pres.addSection({ title: "Analyse & maintain" });
 pres.addSection({ title: "Wrap-up" });
 {
   const s = pres.addSlide({ masterName: "TITLE_DARK", sectionTitle: "Wrap-up" });
-  s.addText("Start small, keep it current", { placeholder: "title" });
-  s.addText("A living skill matrix shows coverage, drives the training plan and proves competence in every audit.", { placeholder: "body" });
+  s.addText("One plant, one skill matrix", { placeholder: "title" });
+  s.addText("A living plant-wide matrix shows coverage in every department, drives one training plan and proves competence in every audit.", { placeholder: "body" });
   const NX = [
-    ["Pilot", "Build the matrix for one line this month"],
-    ["Rate", "Supervisors score their teams using the 0–4 legend"],
-    ["Act", "Turn GAP flags into the next training plan"],
+    ["Roll out", "Load every department into the matrix this quarter"],
+    ["Rate", "Each supervisor scores their team on the 0–4 legend"],
+    ["Act", "Turn plant-wide GAP flags into one training plan"],
   ];
   NX.forEach(([h, b], i) => {
     const x = 8.6, y = 1.5 + i * 1.55;
@@ -425,7 +458,7 @@ pres.addSection({ title: "Wrap-up" });
     s.addText(h, { x: x + 1.1, y: y + 0.2, w: 2.9, h: 0.4, fontSize: 18, bold: true, color: "FFFFFF", margin: 0, isTextBox: true, objectName: `next head ${i + 1}` });
     s.addText(b, { x: x + 1.1, y: y + 0.6, w: 2.9, h: 0.6, fontSize: 14, color: "CFE3D6", valign: "top", margin: 0, isTextBox: true, objectName: `next body ${i + 1}` });
   });
-  s.addNotes("To wrap up: pilot it on one line, get supervisors rating with the same legend, and use the GAP flags to build the training plan. Questions?");
+  s.addNotes("To wrap up: load every department, have each supervisor rate with the same legend, and use the plant-wide GAP flags to build one training plan. Questions?");
 }
 
 (async () => {
