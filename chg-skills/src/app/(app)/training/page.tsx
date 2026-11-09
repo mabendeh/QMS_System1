@@ -88,7 +88,14 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
 
   return (
     <div>
-      <PageHeader title="Training management" subtitle="Identify gap → assign trainer → train (TWI: Prepare, Present, Try Out, Follow Up) → practical demonstration → verify → matrix updates automatically." />
+      <PageHeader
+        title="Training management"
+        subtitle="Identify gap → assign trainer → train (TWI: Prepare, Present, Try Out, Follow Up) → practical demonstration → verify → matrix updates automatically."
+        actions={<>
+          <a href="/api/export/gaps?format=xlsx" className="inline-flex h-10 items-center rounded-md border border-line bg-white px-4 text-sm font-semibold hover:bg-canvas">Export gaps (Excel)</a>
+          <a href="/api/export/gaps?format=pdf" className="inline-flex h-10 items-center rounded-md border border-line bg-white px-4 text-sm font-semibold hover:bg-canvas">PDF</a>
+        </>}
+      />
       <section className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Stat label="Overdue" value={overdue.length} tone={overdue.length ? "red" : "gray"} href="/training?tab=overdue" />
         <Stat label="In progress" value={open.length} tone="yellow" href="/training?tab=active" />

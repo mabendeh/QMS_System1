@@ -51,11 +51,14 @@ export async function computeAnalytics(plant: Plant) {
     .map((c) => ({ id: c.id, name: c.name, area: c.areaName }));
 
   // Trends (last 12 months)
-  const since = new Date(now);
-  since.setMonth(since.getMonth() - 11, 1);
-  since.setHours(0, 0, 0, 0);
+  // Month buckets in plant time (America/Chicago), ending with the current month
+  const [cy, cm] = monthKey(now).split("-").map(Number);
   const months: string[] = [];
-  for (let i = 0; i < 12; i++) { const d = new Date(since); d.setMonth(since.getMonth() + i); months.push(monthKey(d)); }
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(Date.UTC(cy, cm - 1 - i, 1));
+    months.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
+  }
+  const since = new Date(Date.UTC(Number(months[0].slice(0, 4)), Number(months[0].slice(5)) - 1, 1) - 6 * 3_600_000);
   const [verified, completedTraining, evals, completedAssign, promos] = await Promise.all([
     prisma.skillAssessment.findMany({ where: { employeeId: { in: empIds }, requestedStatus: "COMPETENT", state: { in: ["VERIFIED", "APPLIED"] }, createdAt: { gte: since } }, select: { createdAt: true, decidedAt: true } }),
     prisma.trainingAssignment.findMany({ where: { employeeId: { in: empIds }, status: "COMPLETED", completedDate: { gte: since } }, select: { completedDate: true } }),

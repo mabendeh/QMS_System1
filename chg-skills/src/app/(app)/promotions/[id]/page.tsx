@@ -52,16 +52,16 @@ export default async function PromotionDetail({ params }: { params: Promise<{ id
       <div className="grid gap-5 xl:grid-cols-[1fr_400px]">
         <div className="grid content-start gap-5">
           <Card>
-            <CardHeader title="Requirements" subtitle={`At submission (${fmtDateTime(snap.evaluatedAt)}) and now`} />
+            <CardHeader title="Requirements" subtitle={snap.evaluatedAt ? `At submission (${fmtDateTime(snap.evaluatedAt)}) and now` : "Checked live against current qualifications"} />
             <table className="w-full text-sm">
               <thead><tr className="text-left text-xs font-bold uppercase text-muted"><th className="px-5 py-2">Requirement</th><th className="px-2 py-2">At submission</th><th className="px-5 py-2">Now</th></tr></thead>
               <tbody>
-                {(snap.items ?? []).map((it) => {
+                {(snap.items?.length ? snap.items : (live?.result.items ?? []).map((x) => ({ ...x, unknown: true }))).map((it: SnapItem & { unknown?: boolean }) => {
                   const now = live?.result.items.find((x) => x.id === it.id);
                   return (
                     <tr key={it.id} className="border-t border-line">
                       <td className="px-5 py-2.5"><b>{it.label}</b><div className="text-muted">{now?.detail ?? it.detail}</div></td>
-                      <td className="px-2 py-2.5"><Mark met={it.met} manual={it.manual} /></td>
+                      <td className="px-2 py-2.5">{it.unknown ? <span className="text-muted">Not recorded</span> : <Mark met={it.met} manual={it.manual} />}</td>
                       <td className="px-5 py-2.5">{now ? <Mark met={now.met} manual={now.manual} /> : <span className="text-muted">Rules changed</span>}</td>
                     </tr>
                   );

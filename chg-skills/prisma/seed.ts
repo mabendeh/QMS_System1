@@ -125,12 +125,32 @@ async function main() {
     }
   }
 
-  // ---------------------------------------------------------------- user accounts
-  let password = process.env.SEED_DEMO_PASSWORD?.trim();
+  // ---------------------------------------------------------------- demo user accounts (only with sample data)
+  let password = "";
   let generated = false;
-  if (!password) { password = randomBytes(9).toString("base64url"); generated = true; }
-  const hash = await bcrypt.hash(password, 12);
+  let hash = "";
   const users: Record<string, { id: string; name: string }> = {};
+  if (withDemo) await seedUsers();
+
+  if (withDemo) await seedDemo();
+
+  await prisma.auditLog.create({
+    data: { action: "system.seed", entityType: "System", summary: withDemo ? "Configuration and sample data created" : "Configuration created" },
+  });
+  console.log("Seed complete.");
+  if (!withDemo) {
+    console.log("Configuration only – no sample data and no demo accounts. Create your administrator with `npm run admin:create`.");
+    return;
+  }
+  console.log("Demo accounts: hr@, manager@, supervisor.a@ / .b@ / .c@, trainer@, ci@, quality@, leadership@, sysadmin@, employee@  (all @demo.local)");
+  if (generated) console.log(`Generated demo password (shown once): ${password}`);
+  else console.log("Demo password: the value of SEED_DEMO_PASSWORD in your .env file.");
+
+
+  async function seedUsers() {
+  password = process.env.SEED_DEMO_PASSWORD?.trim() ?? "";
+  if (!password) { password = randomBytes(9).toString("base64url"); generated = true; }
+  hash = await bcrypt.hash(password, 12);
   const mk = async (key: string, email: string, name: string, roles: Role[]) => {
     users[key] = await prisma.user.create({
       data: { email, name, passwordHash: hash, roles: { create: roles.map((role) => ({ role })) } },
@@ -150,15 +170,7 @@ async function main() {
     await prisma.trainerAuthorization.create({ data: { userId: users.trainer.id, areaId: areaByCode[code].id } });
   }
 
-  if (withDemo) await seedDemo();
-
-  await prisma.auditLog.create({
-    data: { action: "system.seed", entityType: "System", summary: withDemo ? "Configuration and sample data created" : "Configuration created" },
-  });
-  console.log("Seed complete.");
-  console.log("Demo accounts: hr@, manager@, supervisor.a@ / .b@ / .c@, trainer@, ci@, quality@, leadership@, sysadmin@, employee@  (all @demo.local)");
-  if (generated) console.log(`Generated demo password (shown once): ${password}`);
-  else console.log("Demo password: the value of SEED_DEMO_PASSWORD in your .env file.");
+  }
 
   // ---------------------------------------------------------------- demo people
   async function seedDemo() {
