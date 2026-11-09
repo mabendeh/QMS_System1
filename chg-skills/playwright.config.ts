@@ -6,6 +6,7 @@ export default defineConfig({
   workers: 1,
   fullyParallel: false,
   retries: 0,
+  globalTeardown: "./tests/e2e/teardown.ts",
   use: { baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3100", trace: "off" },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },

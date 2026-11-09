@@ -13,7 +13,9 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
     "test": "vitest run",
-    "test:e2e": "playwright test --trace off"
+    "test:e2e": "playwright test --trace off",
+    "admin:create": "tsx scripts/create-admin.ts",
+    "demo:purge": "tsx scripts/purge-demo.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
