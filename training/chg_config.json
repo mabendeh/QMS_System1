@@ -1,0 +1,901 @@
+{
+ "AREAS": [
+  {
+   "code": "PW",
+   "name": "Pre-Weigh",
+   "kind": "PRODUCTION",
+   "active": true,
+   "description": "Ingredient weigh-up and staging.",
+   "competencies": [
+    [
+     "Ingredient identification",
+     "Identifies every ingredient by label, code and appearance."
+    ],
+    [
+     "Recipe reading",
+     "Reads the current recipe/batch sheet correctly, including units and version."
+    ],
+    [
+     "Scale operation",
+     "Operates, zeroes and tares scales; performs the daily scale check."
+    ],
+    [
+     "Ingredient weighing accuracy",
+     "Weighs within the tolerance stated on the batch sheet.",
+     "critical"
+    ],
+    [
+     "Lot identification and traceability",
+     "Records every ingredient lot used against the batch.",
+     "critical"
+    ],
+    [
+     "Allergen control",
+     "Segregates allergens, uses dedicated tools, prevents cross-contact.",
+     "critical"
+    ],
+    [
+     "Material staging",
+     "Stages weighed kits in the right place and order for mixing."
+    ],
+    [
+     "Barcode scanning",
+     "Scans ingredients and kits; resolves scan errors correctly."
+    ],
+    [
+     "Ingredient reconciliation",
+     "Reconciles usage against the work order and reports variances."
+    ],
+    [
+     "Documentation accuracy",
+     "Completes records in real time with good documentation practices."
+    ],
+    [
+     "Food safety compliance",
+     "Follows GMPs and food safety rules in the weigh area."
+    ],
+    [
+     "Handling incorrect ingredients",
+     "Stops, isolates and escalates wrong or suspect ingredients.",
+     "critical"
+    ],
+    [
+     "Container labeling",
+     "Labels every container with contents, lot, date and allergen status."
+    ],
+    [
+     "Material movement",
+     "Moves materials safely and keeps them identified."
+    ],
+    [
+     "Work order verification",
+     "Confirms the work order matches the recipe before starting."
+    ]
+   ]
+  },
+  {
+   "code": "MX",
+   "name": "Mixing",
+   "kind": "PRODUCTION",
+   "active": true,
+   "description": "Normal production method is AUTO operation unless an approved procedure explicitly authorizes another mode.",
+   "competencies": [
+    [
+     "Mixer startup",
+     "Performs pre-start checks and starts the mixer per the approved procedure."
+    ],
+    [
+     "Automatic operation",
+     "Runs the mixer in AUTO, the standard production mode."
+    ],
+    [
+     "Recipe selection",
+     "Selects and confirms the correct recipe on the HMI."
+    ],
+    [
+     "Ingredient dosing",
+     "Confirms automatic and hand-added ingredients are dosed correctly."
+    ],
+    [
+     "Mixing time control",
+     "Verifies mix times match the recipe."
+    ],
+    [
+     "Mixing speed control",
+     "Verifies mix speeds match the recipe."
+    ],
+    [
+     "Dough temperature monitoring",
+     "Checks and records dough temperature; reacts to out-of-range results."
+    ],
+    [
+     "Batch quality verification",
+     "Checks batch against the quality standard before release."
+    ],
+    [
+     "HMI operation",
+     "Navigates HMI screens for recipes, status and alarms."
+    ],
+    [
+     "Alarm identification",
+     "Identifies each alarm and what it means."
+    ],
+    [
+     "Safe alarm response",
+     "Responds to alarms per procedure without bypassing safeguards or interlocks.",
+     "critical"
+    ],
+    [
+     "Batch documentation",
+     "Completes batch records accurately and on time."
+    ],
+    [
+     "Allergen changeover",
+     "Performs and documents allergen changeover and verification.",
+     "critical"
+    ],
+    [
+     "Cleaning and sanitation",
+     "Cleans the mixer per the sanitation procedure, using lockout/tagout where required."
+    ],
+    [
+     "Equipment shutdown",
+     "Shuts down the mixer safely per procedure."
+    ],
+    [
+     "Abnormal condition escalation",
+     "Stops and escalates abnormal conditions to the lead or supervisor.",
+     "critical"
+    ],
+    [
+     "Process troubleshooting",
+     "Follows approved troubleshooting procedures. Manual mode only when authorized, trained and covered by an approved procedure; never bypasses interlocks or lockout/tagout."
+    ]
+   ]
+  },
+  {
+   "code": "BL",
+   "name": "Blending",
+   "kind": "PRODUCTION",
+   "active": true,
+   "description": "Dry and wet blend preparation.",
+   "competencies": [
+    [
+     "Recipe verification",
+     "Confirms recipe and version before blending."
+    ],
+    [
+     "Ingredient sequencing",
+     "Adds ingredients in the specified order."
+    ],
+    [
+     "Blending equipment setup",
+     "Sets up blending equipment per procedure."
+    ],
+    [
+     "Batch weight verification",
+     "Verifies total batch weight within tolerance."
+    ],
+    [
+     "Blend time monitoring",
+     "Monitors blend time against the specification."
+    ],
+    [
+     "Material transfer",
+     "Transfers blended material without loss or contamination."
+    ],
+    [
+     "Product consistency checks",
+     "Performs consistency checks and records results."
+    ],
+    [
+     "Lot traceability",
+     "Records lots and links them to the blend batch.",
+     "critical"
+    ],
+    [
+     "Allergen management",
+     "Prevents allergen cross-contact during blending.",
+     "critical"
+    ],
+    [
+     "Equipment cleaning",
+     "Cleans blending equipment per the sanitation procedure."
+    ],
+    [
+     "Abnormal condition response",
+     "Stops and escalates abnormal conditions."
+    ],
+    [
+     "Documentation",
+     "Completes blending records accurately."
+    ]
+   ]
+  },
+  {
+   "code": "DD",
+   "name": "Dough Dividing",
+   "kind": "PRODUCTION",
+   "active": true,
+   "description": "Starter checklist – verify against plant procedures.",
+   "competencies": [
+    [
+     "Divider setup",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Piece weight checks",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Divider operation in AUTO",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Jam clearing per procedure (with lockout/tagout where required)",
+     "Starter competency – confirm the standard with the area owner.",
+     "critical"
+    ],
+    [
+     "Changeover and cleaning",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Documentation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ]
+   ]
+  },
+  {
+   "code": "DF",
+   "name": "Dough Forming",
+   "kind": "PRODUCTION",
+   "active": true,
+   "description": "Starter checklist – verify against plant procedures.",
+   "competencies": [
+    [
+     "Former setup",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Shape and size checks",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Forming operation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Reject handling",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Changeover and cleaning",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Documentation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ]
+   ]
+  },
+  {
+   "code": "SH",
+   "name": "Sheeting",
+   "kind": "PRODUCTION",
+   "active": true,
+   "description": "Starter checklist – verify against plant procedures.",
+   "competencies": [
+    [
+     "Sheeter setup",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Sheet thickness checks",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Dusting control",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Sheeter operation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Changeover and cleaning",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Documentation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ]
+   ]
+  },
+  {
+   "code": "LM",
+   "name": "Laminating",
+   "kind": "PRODUCTION",
+   "active": true,
+   "description": "Starter checklist – verify against plant procedures.",
+   "competencies": [
+    [
+     "Laminator setup",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Fat/dough layer checks",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Laminator operation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Changeover and cleaning",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Documentation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ]
+   ]
+  },
+  {
+   "code": "PF",
+   "name": "Proofing",
+   "kind": "PRODUCTION",
+   "active": false,
+   "description": "Configured but inactive (frozen operations scope). Enable in Administration if needed.",
+   "competencies": [
+    [
+     "Proofer setup",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Temperature and humidity checks",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Proof time control",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Cleaning",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Documentation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ]
+   ]
+  },
+  {
+   "code": "BK",
+   "name": "Baking",
+   "kind": "PRODUCTION",
+   "active": false,
+   "description": "Configured but inactive (frozen operations scope). Enable in Administration if needed.",
+   "competencies": [
+    [
+     "Oven start-up",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Bake profile verification",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Product temperature checks",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Oven shutdown",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Documentation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ]
+   ]
+  },
+  {
+   "code": "CL",
+   "name": "Cooling",
+   "kind": "PRODUCTION",
+   "active": true,
+   "description": "Starter checklist – verify against plant procedures.",
+   "competencies": [
+    [
+     "Cooling conveyor operation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Product temperature checks before freezing",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Belt monitoring",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Documentation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ]
+   ]
+  },
+  {
+   "code": "SF",
+   "name": "Spiral Freezing",
+   "kind": "PRODUCTION",
+   "active": true,
+   "description": "Starter checklist – verify against plant procedures.",
+   "competencies": [
+    [
+     "Freezer start-up checklist",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Dwell time and belt speed",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Core temperature verification",
+     "Starter competency – confirm the standard with the area owner.",
+     "critical"
+    ],
+    [
+     "Frost and belt monitoring",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Freezer alarm response",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Cold environment safety",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ]
+   ]
+  },
+  {
+   "code": "PK",
+   "name": "Packaging",
+   "kind": "PRODUCTION",
+   "active": true,
+   "description": "Starter checklist – verify against plant procedures.",
+   "competencies": [
+    [
+     "Bagger / form-fill-seal operation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Seal integrity checks",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Date and lot code verification",
+     "Starter competency – confirm the standard with the area owner.",
+     "critical"
+    ],
+    [
+     "Label and film verification",
+     "Starter competency – confirm the standard with the area owner.",
+     "critical"
+    ],
+    [
+     "Checkweigher verification",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Case packer operation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Packaging changeover and line clearance",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ]
+   ]
+  },
+  {
+   "code": "MD",
+   "name": "Metal Detection / Inspection",
+   "kind": "PRODUCTION",
+   "active": true,
+   "description": "Starter checklist – verify against plant procedures.",
+   "competencies": [
+    [
+     "Metal detector test-piece checks",
+     "Starter competency – confirm the standard with the area owner.",
+     "critical"
+    ],
+    [
+     "Reject mechanism confirmation",
+     "Starter competency – confirm the standard with the area owner.",
+     "critical"
+    ],
+    [
+     "Failed-check response and product hold",
+     "Starter competency – confirm the standard with the area owner.",
+     "critical"
+    ],
+    [
+     "X-ray / vision inspection checks",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Inspection documentation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ]
+   ]
+  },
+  {
+   "code": "PL",
+   "name": "Palletizing",
+   "kind": "PRODUCTION",
+   "active": true,
+   "description": "Starter checklist – verify against plant procedures.",
+   "competencies": [
+    [
+     "Palletizer operation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Pallet pattern and height",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Stretch wrapper operation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Pallet labeling",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Fault clearing per procedure",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ]
+   ]
+  },
+  {
+   "code": "SN",
+   "name": "Sanitation",
+   "kind": "PRODUCTION",
+   "active": true,
+   "description": "Starter checklist – verify against plant procedures.",
+   "competencies": [
+    [
+     "Chemical handling and SDS",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Lockout/tagout for cleaning",
+     "Starter competency – confirm the standard with the area owner.",
+     "critical"
+    ],
+    [
+     "Equipment teardown and reassembly",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Pre-op inspection",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Sanitation documentation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ]
+   ]
+  },
+  {
+   "code": "MH",
+   "name": "Material Handling",
+   "kind": "PRODUCTION",
+   "active": true,
+   "description": "Starter checklist – verify against plant procedures.",
+   "competencies": [
+    [
+     "Powered industrial truck operation (licensed)",
+     "Starter competency – confirm the standard with the area owner.",
+     "critical"
+    ],
+    [
+     "Pallet jack operation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "FIFO / FEFO stock rotation",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Freezer put-away",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Inventory accuracy",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ]
+   ]
+  },
+  {
+   "code": "LS",
+   "name": "Line Setup / Changeover",
+   "kind": "PRODUCTION",
+   "active": true,
+   "description": "Starter checklist – verify against plant procedures.",
+   "competencies": [
+    [
+     "Line start-up sequence",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Product changeover",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Allergen changeover verification",
+     "Starter competency – confirm the standard with the area owner.",
+     "critical"
+    ],
+    [
+     "Line clearance sign-off",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ],
+    [
+     "Shutdown sequence",
+     "Starter competency – confirm the standard with the area owner.",
+     null
+    ]
+   ]
+  },
+  {
+   "code": "FS",
+   "name": "Food Safety & GMP",
+   "kind": "PLANT_WIDE",
+   "active": true,
+   "description": "Mandatory food safety training for all production roles.",
+   "competencies": [
+    [
+     "GMPs and personal hygiene",
+     "Follows GMP, hygiene and PPE rules."
+    ],
+    [
+     "Allergen awareness",
+     "Knows plant allergens and cross-contact controls.",
+     "critical"
+    ],
+    [
+     "HACCP / CCP awareness",
+     "Knows the CCPs in their area and the response to a deviation.",
+     "critical"
+    ],
+    [
+     "Foreign material control",
+     "Applies glass, brittle plastic and tool control rules."
+    ],
+    [
+     "Hold and non-conforming product",
+     "Tags and isolates suspect product; never releases without QA."
+    ]
+   ]
+  },
+  {
+   "code": "SA",
+   "name": "Safety",
+   "kind": "PLANT_WIDE",
+   "active": true,
+   "description": "Mandatory safety training for all production roles.",
+   "competencies": [
+    [
+     "Lockout/tagout awareness",
+     "Knows authorized vs affected roles; never removes another person's lock.",
+     "critical"
+    ],
+    [
+     "Machine guarding and E-stops",
+     "Knows E-stop locations; never bypasses guards or interlocks."
+    ],
+    [
+     "Chemical safety (HazCom)",
+     "Reads labels and SDS; uses the right PPE."
+    ],
+    [
+     "Cold environment safety",
+     "Uses cold PPE, warm-up breaks and freezer door releases."
+    ],
+    [
+     "Emergency response and evacuation",
+     "Knows alarms, evacuation routes and muster points."
+    ]
+   ]
+  }
+ ],
+ "JOB_ROLES": [
+  {
+   "title": "Pre-Weigh Operator",
+   "areas": [
+    "PW",
+    "FS",
+    "SA"
+   ]
+  },
+  {
+   "title": "Mixer Operator",
+   "areas": [
+    "MX",
+    "FS",
+    "SA"
+   ]
+  },
+  {
+   "title": "Blending Operator",
+   "areas": [
+    "BL",
+    "FS",
+    "SA"
+   ]
+  },
+  {
+   "title": "Forming Operator",
+   "areas": [
+    "DD",
+    "DF",
+    "FS",
+    "SA"
+   ]
+  },
+  {
+   "title": "Freezer Operator",
+   "areas": [
+    "SF",
+    "FS",
+    "SA"
+   ]
+  },
+  {
+   "title": "Packaging Operator",
+   "areas": [
+    "PK",
+    "MD",
+    "FS",
+    "SA"
+   ]
+  },
+  {
+   "title": "Palletizer Operator",
+   "areas": [
+    "PL",
+    "MH",
+    "FS",
+    "SA"
+   ]
+  },
+  {
+   "title": "Sanitation Technician",
+   "areas": [
+    "SN",
+    "FS",
+    "SA"
+   ]
+  },
+  {
+   "title": "Line Lead",
+   "areas": [
+    "LS",
+    "FS",
+    "SA"
+   ]
+  },
+  {
+   "title": "Production Associate",
+   "areas": [
+    "FS",
+    "SA"
+   ]
+  }
+ ],
+ "PRIMARY_AREA_FOR_ROLE": {
+  "Pre-Weigh Operator": "PW",
+  "Mixer Operator": "MX",
+  "Blending Operator": "BL",
+  "Forming Operator": "DF",
+  "Freezer Operator": "SF",
+  "Packaging Operator": "PK",
+  "Palletizer Operator": "PL",
+  "Sanitation Technician": "SN",
+  "Line Lead": "LS",
+  "Production Associate": "PK"
+ },
+ "CAREER_LEVELS": [
+  {
+   "rank": 0,
+   "name": "Trainee",
+   "description": "Learning basic production operations."
+  },
+  {
+   "rank": 1,
+   "name": "Qualified Operator",
+   "description": "Independently qualified in the assigned production area."
+  },
+  {
+   "rank": 2,
+   "name": "Multi-Skilled Operator",
+   "description": "Independently qualified in at least two approved production areas."
+  },
+  {
+   "rank": 3,
+   "name": "Advanced Operator",
+   "description": "Advanced technical competencies and independent problem-solving in approved areas."
+  },
+  {
+   "rank": 4,
+   "name": "Certified Trainer",
+   "description": "Qualified to train and evaluate others under an approved training program."
+  }
+ ]
+}
