@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { --font-sans: "Segoe UI", "Helvetica Neue", Arial, sans-serif; }
+html { -webkit-text-size-adjust: 100%; }
+body { @apply bg-canvas text-ink antialiased; font-variant-numeric: tabular-nums; }
+
+/* Angled matrix headers */
+.th-angled { height: 150px; white-space: nowrap; vertical-align: bottom; padding: 0; }
+.th-angled > div { transform: translate(18px, -6px) rotate(-55deg); transform-origin: bottom left; width: 34px; }
+.th-angled > div > span { display: inline-block; padding: 2px 6px; border-bottom: 1px solid #D9DFE7; font-size: 12px; font-weight: 600; }
+.compact .th-angled { height: 120px; }
+.compact .th-angled > div { width: 28px; }
+.compact .th-angled > div > span { font-size: 11px; }
+
+@media print {
+  nav, header, .no-print { display: none !important; }
+  body { background: #fff; }
+  main { padding: 0 !important; }
+  .matrix-scroll { overflow: visible !important; max-height: none !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  @page { size: landscape; margin: 8mm; }
+}

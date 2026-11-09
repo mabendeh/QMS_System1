@@ -1,0 +1,588 @@
+// CHG Production Skills & Career Progression System – database schema
+// PostgreSQL + Prisma. Audit and approval tables are append-only (enforced by
+// database triggers in the initial migration).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------- enums
+
+enum Role {
+  HR_ADMIN
+  PRODUCTION_MANAGER
+  SUPERVISOR
+  TRAINER
+  CI_MANAGER
+  QUALITY
+  LEADERSHIP
+  EMPLOYEE
+  SYSTEM_ADMIN
+}
+
+/// Stored qualification status. "Expired" and "Not assessed" are derived at read time.
+enum SkillStatus {
+  NOT_APPLICABLE
+  NEEDS_TRAINING
+  IN_TRAINING
+  TRAINED
+  COMPETENT
+}
+
+enum AreaKind {
+  PRODUCTION
+  PLANT_WIDE
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum AssessmentState {
+  APPLIED
+  PENDING_VERIFICATION
+  VERIFIED
+  REJECTED
+  SUPERSEDED
+}
+
+enum EvaluationResult {
+  PASS
+  FAIL
+}
+
+enum TrainingStatus {
+  ASSIGNED
+  IN_PROGRESS
+  PRACTICAL_PASSED
+  COMPLETED
+  CANCELLED
+}
+
+enum TwiStep {
+  PREPARE
+  PRESENT
+  TRY_OUT
+  FOLLOW_UP
+}
+
+enum RequirementType {
+  PRIMARY_AREA_QUALIFIED
+  AREA_QUALIFIED
+  MIN_PRODUCTION_AREAS_QUALIFIED
+  COMPETENCY_COMPETENT
+  CURRENT_LEVEL_AT_LEAST
+  MANUAL_VERIFICATION
+}
+
+enum PromotionStatus {
+  SUBMITTED
+  MANAGER_APPROVED
+  HR_VERIFIED
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ApprovalStep {
+  QUALIFICATION_VERIFICATION
+  MANAGER_REVIEW
+  HR_VERIFICATION
+  FINAL_APPROVAL
+}
+
+enum Decision {
+  APPROVED
+  REJECTED
+}
+
+// ---------------------------------------------------------------- people & access
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  passwordHash String?
+  isActive     Boolean    @default(true)
+  employeeId   String?    @unique
+  employee     Employee?  @relation("UserEmployee", fields: [employeeId], references: [id], onDelete: SetNull)
+  roles        UserRole[]
+  sessions     Session[]
+  supervises   Employee[] @relation("Supervisor")
+  trainerAuths TrainerAuthorization[] @relation("TrainerUser")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("users")
+}
+
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role
+
+  @@unique([userId, role])
+  @@map("user_roles")
+}
+
+model Session {
+  id         String   @id // sha256 of the cookie token
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  userAgent  String?
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Shift {
+  id        String     @id @default(cuid())
+  code      String     @unique // A, B, C
+  name      String
+  isActive  Boolean    @default(true)
+  employees Employee[]
+  targets   ShiftCoverageTarget[]
+
+  @@map("shifts")
+}
+
+/// Organizational department (e.g. Production, Sanitation, Warehouse).
+model Department {
+  id        String     @id @default(cuid())
+  code      String     @unique
+  name      String     @unique
+  isActive  Boolean    @default(true)
+  employees Employee[]
+
+  @@map("departments")
+}
+
+/// Production area with its own competency checklist (Pre-Weigh, Mixing, ...).
+/// Shown in the UI as "Department / Area".
+model ProductionArea {
+  id          String       @id @default(cuid())
+  code        String       @unique
+  name        String       @unique
+  description String?
+  kind        AreaKind     @default(PRODUCTION)
+  sortOrder   Int          @default(0)
+  isActive    Boolean      @default(true)
+  competencies Competency[]
+  employees   Employee[]   @relation("PrimaryArea")
+  targets     ShiftCoverageTarget[]
+  expirationRules QualificationExpirationRule[]
+  trainerAuths TrainerAuthorization[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("production_areas")
+}
+
+model JobRole {
+  id           String                  @id @default(cuid())
+  title        String                  @unique
+  description  String?
+  isActive     Boolean                 @default(true)
+  employees    Employee[]
+  requirements CompetencyRequirement[]
+
+  @@map("job_roles")
+}
+
+model Competency {
+  id                String   @id @default(cuid())
+  areaId            String
+  area              ProductionArea @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  code              String   @unique
+  name              String
+  description       String?
+  sortOrder         Int      @default(0)
+  isActive          Boolean  @default(true)
+  /// Critical skills need a passed practical evaluation AND uploaded evidence before Competent.
+  isCritical        Boolean  @default(false)
+  requiresEvidence  Boolean  @default(false)
+  requirements      CompetencyRequirement[]
+  skills            EmployeeSkill[]
+  assessments       SkillAssessment[]
+  evaluations       PracticalEvaluation[]
+  trainings         TrainingAssignment[]
+  evidence          Evidence[]
+  expirationRules   QualificationExpirationRule[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([areaId, name])
+  @@index([areaId, sortOrder])
+  @@map("competencies")
+}
+
+/// Which competencies a job role must hold. Unassessed required skills show as "Needs Training".
+model CompetencyRequirement {
+  id           String     @id @default(cuid())
+  jobRoleId    String
+  jobRole      JobRole    @relation(fields: [jobRoleId], references: [id], onDelete: Cascade)
+  competencyId String
+  competency   Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@unique([jobRoleId, competencyId])
+  @@map("competency_requirements")
+}
+
+model CareerLevel {
+  id          String   @id @default(cuid())
+  rank        Int      @unique
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  employees   Employee[]
+  ruleSets    PromotionRuleSet[]
+  payGrades   PayGrade[]
+  fromRequests PromotionRequest[] @relation("FromLevel")
+  toRequests   PromotionRequest[] @relation("ToLevel")
+
+  @@map("career_levels")
+}
+
+model Employee {
+  id               String         @id @default(cuid())
+  employeeNumber   String         @unique
+  firstName        String
+  lastName         String
+  shiftId          String
+  shift            Shift          @relation(fields: [shiftId], references: [id])
+  departmentId     String?
+  department       Department?    @relation(fields: [departmentId], references: [id])
+  primaryAreaId    String?
+  primaryArea      ProductionArea? @relation("PrimaryArea", fields: [primaryAreaId], references: [id])
+  jobRoleId        String?
+  jobRole          JobRole?       @relation(fields: [jobRoleId], references: [id])
+  supervisorUserId String?
+  supervisor       User?          @relation("Supervisor", fields: [supervisorUserId], references: [id], onDelete: SetNull)
+  careerLevelId    String?
+  careerLevel      CareerLevel?   @relation(fields: [careerLevelId], references: [id])
+  hireDate         DateTime?
+  status           EmployeeStatus @default(ACTIVE)
+  isSample         Boolean        @default(false)
+  user             User?          @relation("UserEmployee")
+  skills           EmployeeSkill[]
+  assessments      SkillAssessment[]
+  evaluations      PracticalEvaluation[]
+  trainings        TrainingAssignment[]
+  evidence         Evidence[]
+  promotions       PromotionRequest[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([shiftId])
+  @@index([primaryAreaId])
+  @@index([supervisorUserId])
+  @@index([lastName, firstName])
+  @@map("employees")
+}
+
+// ---------------------------------------------------------------- qualifications
+
+/// Current qualification state for one employee + competency (one row per pair).
+/// `version` is used for optimistic locking so concurrent edits are detected.
+model EmployeeSkill {
+  id            String      @id @default(cuid())
+  employeeId    String
+  employee      Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  competencyId  String
+  competency    Competency  @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  status        SkillStatus
+  pendingStatus SkillStatus?
+  pendingAssessmentId String?
+  trainingDate  DateTime?
+  qualifiedAt   DateTime?
+  expiresAt     DateTime?
+  lastAssessedAt DateTime?
+  lastAssessedById String?
+  notes         String?
+  version       Int         @default(1)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([employeeId, competencyId])
+  @@index([competencyId, status])
+  @@index([expiresAt])
+  @@map("qualification_records")
+}
+
+/// Every assessment submission (history). Only `state` moves from PENDING to a final value.
+model SkillAssessment {
+  id              String          @id @default(cuid())
+  employeeId      String
+  employee        Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  competencyId    String
+  competency      Competency      @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  previousStatus  SkillStatus?
+  requestedStatus SkillStatus
+  state           AssessmentState
+  notes           String?
+  trainingDate    DateTime?
+  evaluatorName   String?
+  submittedById   String
+  practicalEvaluationId String?
+  createdAt       DateTime        @default(now())
+  decidedAt       DateTime?
+  evidence        Evidence[]
+  approvals       ApprovalRecord[]
+
+  @@index([employeeId, competencyId, createdAt])
+  @@index([state])
+  @@map("employee_assessments")
+}
+
+model PracticalEvaluation {
+  id                   String           @id @default(cuid())
+  employeeId           String
+  employee             Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  competencyId         String
+  competency           Competency       @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  trainingAssignmentId String?
+  trainingAssignment   TrainingAssignment? @relation(fields: [trainingAssignmentId], references: [id], onDelete: SetNull)
+  evaluatorUserId      String
+  evaluatedAt          DateTime
+  result               EvaluationResult
+  independentOperation Boolean          @default(false)
+  notes                String?
+  createdAt            DateTime         @default(now())
+  evidence             Evidence[]
+
+  @@index([employeeId, competencyId])
+  @@map("practical_evaluations")
+}
+
+model TrainerAuthorization {
+  id           String         @id @default(cuid())
+  userId       String
+  user         User           @relation("TrainerUser", fields: [userId], references: [id], onDelete: Cascade)
+  areaId       String
+  area         ProductionArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  authorizedAt DateTime       @default(now())
+  validUntil   DateTime?
+
+  @@unique([userId, areaId])
+  @@map("trainers")
+}
+
+model TrainingAssignment {
+  id             String         @id @default(cuid())
+  employeeId     String
+  employee       Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  competencyId   String
+  competency     Competency     @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  trainerUserId  String?
+  assignedById   String
+  status         TrainingStatus @default(ASSIGNED)
+  twiStep        TwiStep        @default(PREPARE)
+  startDate      DateTime?
+  dueDate        DateTime?
+  completedDate  DateTime?
+  notes          String?
+  version        Int            @default(1)
+  evaluations    PracticalEvaluation[]
+  evidence       Evidence[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([employeeId, status])
+  @@index([trainerUserId, status])
+  @@index([dueDate])
+  @@map("training_assignments")
+}
+
+model Evidence {
+  id                    String    @id @default(cuid())
+  employeeId            String
+  employee              Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  competencyId          String
+  competency            Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  assessmentId          String?
+  assessment            SkillAssessment? @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+  trainingAssignmentId  String?
+  trainingAssignment    TrainingAssignment? @relation(fields: [trainingAssignmentId], references: [id], onDelete: SetNull)
+  practicalEvaluationId String?
+  practicalEvaluation   PracticalEvaluation? @relation(fields: [practicalEvaluationId], references: [id], onDelete: SetNull)
+  originalName          String
+  storedName            String    @unique
+  mimeType              String
+  sizeBytes             Int
+  sha256                String
+  uploadedById          String
+  createdAt             DateTime  @default(now())
+
+  @@index([employeeId, competencyId])
+  @@map("training_evidence")
+}
+
+/// Requalification interval. Competency-level rule wins over area-level rule.
+model QualificationExpirationRule {
+  id           String          @id @default(cuid())
+  areaId       String?
+  area         ProductionArea? @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  competencyId String?
+  competency   Competency?     @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  months       Int
+  notes        String?
+
+  @@unique([areaId, competencyId])
+  @@map("qualification_expiration_rules")
+}
+
+model ShiftCoverageTarget {
+  id              String         @id @default(cuid())
+  areaId          String
+  area            ProductionArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  shiftId         String
+  shift           Shift          @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  targetQualified Int
+
+  @@unique([areaId, shiftId])
+  @@map("shift_coverage_targets")
+}
+
+// ---------------------------------------------------------------- promotion & pay
+
+/// Versioned rules for reaching a career level. Edits create a new version.
+model PromotionRuleSet {
+  id            String        @id @default(cuid())
+  careerLevelId String
+  careerLevel   CareerLevel   @relation(fields: [careerLevelId], references: [id], onDelete: Cascade)
+  version       Int
+  isActive      Boolean       @default(true)
+  effectiveFrom DateTime      @default(now())
+  notes         String?
+  createdById   String?
+  createdAt     DateTime      @default(now())
+  requirements  PromotionRequirement[]
+  requests      PromotionRequest[]
+
+  @@unique([careerLevelId, version])
+  @@map("promotion_rules")
+}
+
+model PromotionRequirement {
+  id           String           @id @default(cuid())
+  ruleSetId    String
+  ruleSet      PromotionRuleSet @relation(fields: [ruleSetId], references: [id], onDelete: Cascade)
+  type         RequirementType
+  areaId       String?
+  competencyId String?
+  minCount     Int?
+  label        String
+  sortOrder    Int              @default(0)
+
+  @@index([ruleSetId])
+  @@map("promotion_requirements")
+}
+
+model PromotionRequest {
+  id                 String          @id @default(cuid())
+  employeeId         String
+  employee           Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  fromLevelId        String?
+  fromLevel          CareerLevel?    @relation("FromLevel", fields: [fromLevelId], references: [id])
+  toLevelId          String
+  toLevel            CareerLevel     @relation("ToLevel", fields: [toLevelId], references: [id])
+  ruleSetId          String
+  ruleSet            PromotionRuleSet @relation(fields: [ruleSetId], references: [id])
+  status             PromotionStatus @default(SUBMITTED)
+  justification      String
+  evaluationSnapshot Json
+  submittedById      String
+  submittedAt        DateTime        @default(now())
+  decisionDate       DateTime?
+  effectiveDate      DateTime?
+  version            Int             @default(1)
+  approvals          ApprovalRecord[]
+
+  @@index([status])
+  @@index([employeeId])
+  @@map("promotion_requests")
+}
+
+/// Append-only record of every review decision.
+model ApprovalRecord {
+  id                 String            @id @default(cuid())
+  promotionRequestId String?
+  promotionRequest   PromotionRequest? @relation(fields: [promotionRequestId], references: [id], onDelete: Restrict)
+  assessmentId       String?
+  assessment         SkillAssessment?  @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  step               ApprovalStep
+  decision           Decision
+  comments           String?
+  decidedById        String
+  decidedAt          DateTime          @default(now())
+
+  @@index([promotionRequestId])
+  @@index([assessmentId])
+  @@map("approval_records")
+}
+
+/// Pay structure. Amounts are entered by HR; nothing is pre-filled.
+model PayGrade {
+  id                String       @id @default(cuid())
+  code              String       @unique
+  name              String
+  careerLevelId     String?
+  careerLevel       CareerLevel? @relation(fields: [careerLevelId], references: [id])
+  minRate           Decimal?     @db.Decimal(10, 2)
+  maxRate           Decimal?     @db.Decimal(10, 2)
+  currency          String       @default("USD")
+  effectiveDate     DateTime?
+  endDate           DateTime?
+  approvalAuthority String?
+  notes             String?
+  isActive          Boolean      @default(true)
+  updatedAt         DateTime     @updatedAt
+
+  @@map("pay_grades")
+}
+
+model SkillPremium {
+  id                String    @id @default(cuid())
+  name              String    @unique
+  areaId            String?
+  amount            Decimal?  @db.Decimal(10, 2)
+  unit              String    @default("per hour")
+  effectiveDate     DateTime?
+  endDate           DateTime?
+  approvalAuthority String?
+  notes             String?
+  isActive          Boolean   @default(true)
+  updatedAt         DateTime  @updatedAt
+
+  @@map("skill_premiums")
+}
+
+// ---------------------------------------------------------------- audit
+
+model AuditLog {
+  id          BigInt   @id @default(autoincrement())
+  at          DateTime @default(now())
+  actorUserId String?
+  actorName   String?
+  action      String
+  entityType  String
+  entityId    String?
+  summary     String
+  before      Json?
+  after       Json?
+
+  @@index([entityType, entityId])
+  @@index([at])
+  @@map("audit_logs")
+}
