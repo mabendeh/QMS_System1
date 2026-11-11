@@ -5,7 +5,7 @@
 Outputs (in training/):
   CHG_Skills_Career_System.xlsx  - matrix, employees, training log, promotion review,
                                    coverage, dashboard, CI analytics, person card, setup
-  CHG_HR_Compensation.xlsx       - pay grades / skill premiums (keep in an HR-only folder)
+  (pay grades / skill premiums are on the red HR tabs in the same file)
 
 Departments, competencies, job titles and career levels come from chg_config.json
 (the same starting configuration as the web app). All people are fictional samples.
@@ -27,7 +27,6 @@ from openpyxl.worksheet.datavalidation import DataValidation
 HERE = Path(__file__).parent
 CFG = json.loads((HERE / "chg_config.json").read_text())
 OUT = HERE / "CHG_Skills_Career_System.xlsx"
-OUT_HR = HERE / "CHG_HR_Compensation.xlsx"
 TODAY = date.today()
 FONT = "Arial"
 
@@ -905,15 +904,15 @@ ws.row_dimensions[3].height = 28
 put(ws, "B5", "What do you want to do?  (click a box)", f(13, True, NAVY))
 btns = [("See how the plant is doing", "Dashboard", "1E63C4"), ("Update skill levels", "Skills Matrix", "2E8B57"), ("Add or edit people", "Employees", "14284B"),
         ("Record training & verification", "Training Log", "C55A11"), ("Review one person", "Person Card", "7030A0"), ("Promotion recommendations", "Promotion Review", "404040"),
-        ("Check shift coverage", "Shift Coverage", "BF8F00"), ("CI analytics", "CI Analytics", "548235"), ("Departments & skills setup", "Departments & Skills", "7F7F7F")]
+        ("Check shift coverage", "Shift Coverage", "BF8F00"), ("CI analytics", "CI Analytics", "548235"), ("Departments & skills setup", "Departments & Skills", "7F7F7F"), ("HR pay grades (HR only)", "HR Pay Grades", "C00000")]
 for i, (txt, tgt, col) in enumerate(btns):
     r = 7 + (i // 3) * 3
     cl = "BDF"[i % 3]
     ws.merge_cells(f"{cl}{r}:{cl}{r + 1}")
     link(ws, f"{cl}{r}", f"{txt}\n▸ {tgt}", tgt, "FFFFFF", col, 11)
-for r in range(7, 16):
+for r in range(7, 19):
     ws.row_dimensions[r].height = 22
-put(ws, "B17", "How it works", f(13, True, NAVY))
+put(ws, "B20", "How it works", f(13, True, NAVY))
 steps = [
     ("1. People", "Add each person on Employees (ID, name, shift A/B/C, department, job title, supervisor, career level). Delete or overwrite the Sample rows."),
     ("2. Skills", "On Skills Matrix pick NT / IT / TR / C / N/A. A red empty cell means the job requires that skill and it hasn't been assessed."),
@@ -923,20 +922,20 @@ steps = [
     ("6. Promotion", "Employees and Person Card show the next level and what is missing. Supervisors add a row on Promotion Review; manager, HR and final approver fill their columns."),
 ]
 for i, (a, b) in enumerate(steps):
-    r = 18 + i
+    r = 21 + i
     put(ws, f"B{r}", a, f(11, True), al=Alignment(vertical="top", indent=1))
     merge(ws, f"D{r}:F{r}", b, font=f(10), al=Alignment(wrap_text=True, vertical="top"))
     ws.row_dimensions[r].height = 40
-put(ws, "B25", "Important", f(13, True, NAVY))
+put(ws, "B28", "Important", f(13, True, NAVY))
 notes = [
-    "Pay data is NOT in this file. It is in CHG_HR_Compensation.xlsx – store that in an HR-only folder and encrypt it (File ▸ Info ▸ Protect Workbook ▸ Encrypt with Password).",
+    "Pay sheets (red tabs, HR Pay …) are in this file. Excel cannot hide them from anyone who opens it – encrypt the file (File ▸ Info ▸ Protect Workbook ▸ Encrypt with Password) and share it only with people allowed to see pay. If supervisors need the file, delete the HR tabs from their copy.",
     "Excel cannot enforce who edits what or keep a tamper-proof history. Use folder permissions, turn on version history (SharePoint/OneDrive), and keep signed copies of verifications and promotion decisions.",
     "Departments, checklists, job requirements, career levels, rules and targets are STARTING ASSUMPTIONS – confirm them with the area owners and HR.",
     "Yellow cells = you type here. Grey cells = formulas, don't overwrite. Dates as dd-mmm-yy.",
     "Proofing and Baking are left out (frozen operations only).",
 ]
 for i, t in enumerate(notes):
-    r = 26 + i
+    r = 29 + i
     merge(ws, f"B{r}:F{r}", "•  " + t, font=f(10), al=Alignment(wrap_text=True, vertical="top"))
     ws.row_dimensions[r].height = 30
 
@@ -953,17 +952,14 @@ colors = {"Start Here": NAVY, "Dashboard": "1E63C4", "Skills Matrix": "2E8B57", 
           "Promotion Review": "404040", "Shift Coverage": "BF8F00", "CI Analytics": "548235", "Departments & Skills": "7F7F7F", "Job Requirements": "7F7F7F", "Career Levels": "7F7F7F"}
 for n, c in colors.items():
     S[n].sheet_properties.tabColor = c
-wb.active = 0
-wb.save(OUT)
-
-# ================================================================== HR compensation workbook (separate file)
-hb = Workbook()
-ws = hb.active
-ws.title = "Pay Grades"
+# ================================================================== HR pay sheets (in the same workbook)
+hb = wb
+ws = hb.create_sheet("HR Pay Grades")
 ws.sheet_view.showGridLines = False
 put(ws, "A1", "CHG HR Compensation – CONFIDENTIAL", f(18, True, NAVY))
-put(ws, "A2", "HR Administrators and Plant Leadership only. Store in an HR-only folder and encrypt (File ▸ Info ▸ Protect Workbook ▸ Encrypt with Password). "
-              "No amounts are pre-filled – enter only APPROVED values.", f(10, italic=True, color="C00000"))
+put(ws, "A2", "HR Administrators and Plant Leadership only. Anyone who can open this workbook can see these sheets – encrypt the file (File ▸ Info ▸ Protect Workbook ▸ Encrypt with Password) "
+              "and store it where only approved people have access. No amounts are pre-filled – enter only APPROVED values.", f(10, italic=True, color="C00000"))
+link(ws, "H1", "◂ Start Here", "Start Here")
 for i, (h, w) in enumerate([("Code", 9), ("Pay grade name", 28), ("Career level", 24), ("Min hourly rate (USD)", 13), ("Max hourly rate (USD)", 13),
                             ("Effective date", 12), ("End date", 12), ("Approval authority", 22), ("Policy reference / notes", 40), ("Check", 30)], start=1):
     head(ws, 4, i, h)
@@ -977,7 +973,7 @@ for k in range(15):
         put(ws, (r, c), v, f(10), INPUT, L_AL if c in (2, 3, 8, 9) else C_AL, BOX, '"$"#,##0.00' if c in (4, 5) else "dd-mmm-yy" if c in (6, 7) else None)
     put(ws, (r, 10), f'=TRIM(IF(AND(ISNUMBER(D{r}),ISNUMBER(E{r}),D{r}>E{r}),"Min is above max. ","")&IF(AND(OR(D{r}<>"",E{r}<>""),F{r}=""),"Effective date missing. ","")'
                      f'&IF(AND(F{r}<>"",G{r}<>"",G{r}<F{r}),"End before start. ",""))', f(9, color="C00000"), GREY, L_AL, BOX)
-ws2 = hb.create_sheet("Skill Premiums")
+ws2 = hb.create_sheet("HR Skill Premiums")
 ws2.sheet_view.showGridLines = False
 put(ws2, "A1", "Skill Premiums – CONFIDENTIAL", f(18, True, NAVY))
 put(ws2, "A2", "Optional premiums for approved qualifications. Enter only approved amounts.", f(10, italic=True, color="C00000"))
@@ -988,7 +984,7 @@ for i, (h, w) in enumerate([("Premium name", 28), ("Department (optional)", 22),
 for k in range(20):
     for c in range(1, 9):
         put(ws2, (5 + k, c), "per hour" if c == 4 and k == 0 else None, f(10), INPUT, None, BOX, '"$"#,##0.00' if c == 3 else "dd-mmm-yy" if c in (5, 6) else None)
-ws3 = hb.create_sheet("Change Log")
+ws3 = hb.create_sheet("HR Pay Change Log")
 put(ws3, "A1", "Change log – record every change (who, when, what, approved by)", f(14, True, NAVY))
 for i, (h, w) in enumerate([("Date", 12), ("Changed by", 22), ("What changed", 50), ("Old value", 18), ("New value", 18), ("Approved by", 22)], start=1):
     head(ws3, 3, i, h)
@@ -996,5 +992,10 @@ for i, (h, w) in enumerate([("Date", 12), ("Changed by", 22), ("What changed", 5
 for k in range(100):
     for c in range(1, 7):
         put(ws3, (4 + k, c), None, f(10), INPUT, None, BOX, "dd-mmm-yy" if c == 1 else None)
-hb.save(OUT_HR)
-print(f"Saved {OUT.name} ({len(SKILLS)} skills, {len(AREAS)} departments, {len(people)} sample people, {len(log_rows)} log rows) and {OUT_HR.name}")
+for n, c in (("HR Pay Grades", "C00000"), ("HR Skill Premiums", "C00000"), ("HR Pay Change Log", "C00000")):
+    wb[n].sheet_properties.tabColor = c
+wb.move_sheet("Lists", offset=len(wb.sheetnames))
+wb.move_sheet("Calc", offset=len(wb.sheetnames))
+wb.active = 0
+wb.save(OUT)
+print(f"Saved {OUT.name} ({len(SKILLS)} skills, {len(AREAS)} departments, {len(people)} sample people, {len(log_rows)} log rows)")
