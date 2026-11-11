@@ -1,14 +1,12 @@
-"""Builds the CHG Production Skills & Career Progression System as Excel workbooks.
+"""Builds the CHG Production Skills workbook (simplified edition).
 
     python training/build_chg_system_workbook.py
 
-Outputs (in training/):
-  CHG_Skills_Career_System.xlsx  - matrix, employees, training log, promotion review,
-                                   coverage, dashboard, CI analytics, person card, setup
-  (pay grades / skill premiums are on the red HR tabs in the same file)
-
-Departments, competencies, job titles and career levels come from chg_config.json
-(the same starting configuration as the web app). All people are fictional samples.
+Output: training/CHG_Skills_Career_System.xlsx
+Sheets: Start Here, Dashboard, Skills Matrix, Employees, Person Card, CI Analytics,
+        Job Requirements (+ hidden Lists, Calc, SkillCalc helpers).
+Departments, competencies and job titles come from chg_config.json.
+All people are fictional samples.
 """
 import json
 import random
@@ -16,9 +14,8 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from openpyxl import Workbook
-from openpyxl.chart import BarChart, LineChart, Reference
+from openpyxl.chart import BarChart, Reference
 from openpyxl.chart.label import DataLabelList
-from openpyxl.comments import Comment
 from openpyxl.formatting.rule import CellIsRule, FormulaRule
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter as L
@@ -30,47 +27,29 @@ OUT = HERE / "CHG_Skills_Career_System.xlsx"
 TODAY = date.today()
 FONT = "Arial"
 
-# ------------------------------------------------------------------ sizes / anchors
-AREAS = [a for a in CFG["AREAS"] if a["active"]]          # Proofing & Baking are inactive (frozen scope)
-SKILLS = [(f'{a["code"]}-{i + 1:02d}', a["name"], c[0], len(c) > 2 and c[2] == "critical", c[1], a["code"])
-          for a in AREAS for i, c in enumerate(a["competencies"])]
-REQUAL = {"FS": 12, "SA": 12, "MD": 12}
-REQUAL_SKILL = {"Allergen changeover": 12}
-SK_N, SK0 = 140, 5                     # competency slots on Departments & Skills (rows 5..144)
-SK1 = SK0 + SK_N - 1
-D_N, D0 = 20, 5                        # department slots (rows 5..24)
-D1 = D0 + D_N - 1
-E_N, E0 = 150, 6                       # employee rows 6..155 on Employees / Matrix / Calc
-E1 = E0 + E_N - 1
-LOG_N, LOG0 = 2000, 6
-LOG1 = LOG0 + LOG_N - 1
-PR_N, PR0 = 100, 6
-JR_N, JR0 = 15, 6                      # job titles rows on Job Requirements
-MC = 7                                 # first skill column on matrix (G)
-MCL = L(MC)
-MLAST = L(MC + SK_N - 1)
-SHIFTS = ["A", "B", "C"]
-LEVELS = CFG["CAREER_LEVELS"]
+AREAS = [a for a in CFG["AREAS"] if a["active"]]          # Proofing & Baking left out (frozen only)
+DEPTS = [a["name"] for a in AREAS]
+ND = len(DEPTS)
+IS_PROD = [1 if a["kind"] == "PRODUCTION" else 0 for a in AREAS]
+PROD_DEPTS = [a["name"] for a in AREAS if a["kind"] == "PRODUCTION"]
+SKILLS = [(f'{a["code"]}-{i + 1:02d}', a["name"], c[0], len(c) > 2 and c[2] == "critical") for a in AREAS for i, c in enumerate(a["competencies"])]
+NS = len(SKILLS)
 JOBS = CFG["JOB_ROLES"]
-CODE2NAME = {a["code"]: a["name"] for a in CFG["AREAS"]}
+SHIFTS = ["A", "B", "C"]
 
-BLOCKS = ["C", "V", "T", "R", "Q", "P"]   # C count, verified-current count, IT/TR count, required, qualified, competent-required
-BSTART = {b: 7 + i * D_N for i, b in enumerate(BLOCKS)}
-ANCH = {name: 7 + 6 * D_N + i for i, name in enumerate(
-    ["gap", "EZ_req", "FA_comp", "FB_gaps", "FC_tr", "FD_prod", "FE_fs", "FF_sa", "FG_prim", "FH_next", "FI_e", "FJ_f", "FK_g", "FL_h", "FM_i", "FN_ready", "FO_missing", "FP_key", "FQ_full", "FR_rank"])}
-CL = {n: L(c) for n, c in ANCH.items()}
+E0, E_N = 6, 150
+E1 = E0 + E_N - 1
+MC = 7
+MCL, MLAST = L(MC), L(MC + NS - 1)
+JR0 = 6
+JR_N = 15
+SC0 = 6                                   # SkillCalc first row
+SC1 = SC0 + NS - 1
 
-# ------------------------------------------------------------------ style helpers
 NAVY, INK, MUTED = "14284B", "1A2433", "5D6B7E"
-ST = {  # code: (fill, font, label)
-    "NT": ("C62828", "FFFFFF", "Needs Training"),
-    "IT": ("F2C230", "1A2433", "In Training"),
-    "TR": ("2E8B57", "FFFFFF", "Trained"),
-    "C": ("1E63C4", "FFFFFF", "Competent"),
-    "N/A": ("E3E7EC", "5D6B7E", "Not Applicable / Not Assessed"),
-}
-EXP = ("8E1B1B", "FFFFFF")
-UNVER = ("9DC3E6", "14284B")
+ST = {"NT": ("C62828", "FFFFFF", "Needs Training"), "IT": ("F2C230", "1A2433", "In Training"), "TR": ("2E8B57", "FFFFFF", "Trained"),
+      "C": ("1E63C4", "FFFFFF", "Competent"), "N/A": ("E3E7EC", "5D6B7E", "Not Applicable")}
+REQ_BLANK = ("F4B6B6", "C62828")
 OK_F, OK_T, AMB_F, AMB_T, BAD_F, BAD_T = "C6EFCE", "006100", "FFEB9C", "7F6000", "FFC7CE", "9C0006"
 thin = Side(style="thin", color="D0D7DE")
 BOX = Border(left=thin, right=thin, top=thin, bottom=thin)
@@ -120,14 +99,13 @@ def link(ws, ref, text, target, color=NAVY, bg=None, size=10):
     return c
 
 
-def title(ws, text, sub, nav=True, navcol="H"):
+def title(ws, text, sub, navcol="H"):
     put(ws, "A1", text, f(18, True, NAVY))
     put(ws, "A2", sub, f(10, color=MUTED, italic=True))
     ws.row_dimensions[1].height = 30
     ws.sheet_view.showGridLines = False
-    if nav:
-        link(ws, f"{navcol}1", "◂ Start Here", "Start Here")
-        link(ws, f"{L(ws[navcol + '1'].column + 1)}1", "▦ Dashboard", "Dashboard")
+    link(ws, f"{navcol}1", "◂ Start Here", "Start Here")
+    link(ws, f"{L(ws[navcol + '1'].column + 1)}1", "▦ Dashboard", "Dashboard")
 
 
 def dv(ws, formula, rng, prompt=None, title_=None, allow_blank=True):
@@ -137,137 +115,54 @@ def dv(ws, formula, rng, prompt=None, title_=None, allow_blank=True):
     d.add(rng)
 
 
-def cf_fill(ws, rng, formula, fillc, fontc, bold=True, stop=False):
+def cf(ws, rng, formula, fillc, fontc, bold=True, stop=False):
     ws.conditional_formatting.add(rng, FormulaRule(formula=[formula], fill=fill(fillc), font=Font(name=FONT, bold=bold, color=fontc), stopIfTrue=stop))
 
 
 wb = Workbook()
 S = {}
-for name in ["Start Here", "Dashboard", "Skills Matrix", "Employees", "Training Log", "Person Card", "Promotion Review",
-             "Shift Coverage", "CI Analytics", "Departments & Skills", "Job Requirements", "Career Levels", "Lists", "Calc"]:
+for name in ["Start Here", "Dashboard", "Skills Matrix", "Employees", "Person Card", "CI Analytics", "Job Requirements", "Lists", "Calc", "SkillCalc"]:
     S[name] = wb.active if name == "Start Here" else wb.create_sheet(name)
-    if name == "Start Here":
-        S[name].title = name
-SKN = "'Departments & Skills'"
-EMP, MX, LOG, PRM, COV, LVL, JR, CALC, LST = "Employees", "'Skills Matrix'", "'Training Log'", "'Promotion Review'", "'Shift Coverage'", "'Career Levels'", "'Job Requirements'", "Calc", "Lists"
+S["Start Here"].title = "Start Here"
+MX, EMP, JR, CALC, SKC = "'Skills Matrix'", "Employees", "'Job Requirements'", "Calc", "SkillCalc"
 
-# ================================================================== Lists
+# ================================================================== Lists (hidden)
 ws = S["Lists"]
-title(ws, "Lists", "Drop-down values. Yellow cells may be edited.", nav=False)
-cols = {
-    "A": ("Shift", SHIFTS), "B": ("Skill status", list(ST.keys())), "C": ("Yes/No", ["Yes", "No"]),
-    "D": ("Practical result", ["Pass", "Not passed"]), "E": ("TWI step", ["1 Prepare", "2 Present", "3 Try Out", "4 Follow Up"]),
-    "F": ("Decision", ["Approved", "Rejected"]), "G": ("Dashboard filter", ["All shifts"] + SHIFTS), "H": ("Employee status", ["Active", "Inactive"]),
-    "I": ("Supervisors", ["Supervisor A (sample)", "Supervisor B (sample)", "Supervisor C (sample)"]),
-    "J": ("Trainers / evaluators", ["Demo Trainer", "Demo Production Manager", "Demo Quality Lead"]),
-    "K": ("Department type", ["Production", "Plant-wide"]),
-}
-for col, (h, vals) in cols.items():
-    head(ws, 4, ws[col + "4"].column, h)
+lists = {"A": ("Shift", SHIFTS), "B": ("Skill status", list(ST)), "C": ("Department", DEPTS), "D": ("Yes/No", ["Yes", "No"]),
+         "E": ("Dashboard filter", ["All shifts"] + SHIFTS), "F": ("Supervisors (edit)", ["Supervisor A (sample)", "Supervisor B (sample)", "Supervisor C (sample)"])}
+for col, (h, vals) in lists.items():
+    put(ws, f"{col}4", h, f(10, True))
     ws.column_dimensions[col].width = 24
     for i, v in enumerate(vals):
-        put(ws, f"{col}{5 + i}", v, f(), INPUT if col in "IJ" else None)
-for i in range(len(cols["I"][1]), 30):
-    put(ws, f"I{5 + i}", None, fl=INPUT)
-    put(ws, f"J{5 + i}", None, fl=INPUT)
-LISTS = {k: f"Lists!${k}$5:${k}${4 + len(v[1])}" for k, v in cols.items()}
-LISTS["I"], LISTS["J"] = "Lists!$I$5:$I$34", "Lists!$J$5:$J$34"
+        put(ws, f"{col}{5 + i}", v)
+LISTS = {k: f"Lists!${k}$5:${k}${4 + len(v[1])}" for k, v in lists.items()}
+LISTS["F"] = "Lists!$F$5:$F$34"
 ws.sheet_state = "hidden"
-
-# ================================================================== Departments & Skills
-ws = S["Departments & Skills"]
-title(ws, "Departments & Skills", "Edit the yellow cells to rename, add or reorder. Starting checklists are assumptions – verify against the Duncanville plant. ◆ critical = needs practical evaluation AND evidence.", navcol="F")
-for i, (h, w) in enumerate([("Skill ID", 9), ("Department", 22), ("Competency", 40), ("Critical", 8), ("Requalify every (months)", 11),
-                            ("Standard / what Competent looks like", 54), ("People Competent", 10), ("Only qualified person", 22), ("key", 4)], start=1):
-    head(ws, 4, i, h)
-    ws.column_dimensions[L(i)].width = w
-ws.row_dimensions[4].height = 42
-dcol = {"J": ("Department", 26), "K": ("Code", 7), "L": ("Type", 12), "M": ("Competencies", 12), "N": ("Notes", 40), "O": ("prod#", 5)}
-for col, (h, w) in dcol.items():
-    head(ws, 4, ws[col + "4"].column, h)
-    ws.column_dimensions[col].width = w
-for k in range(SK_N):
-    r = SK0 + k
-    s = SKILLS[k] if k < len(SKILLS) else None
-    months = (REQUAL_SKILL.get(s[2]) or REQUAL.get(s[5])) if s else None
-    for c, v in zip("ABCDEF", (s[0], s[1], s[2], "Yes" if s[3] else "No", months, s[4]) if s else ("", "", "", "", "", "")):
-        put(ws, f"{c}{r}", v if v != "" else None, f(10, c in "AC"), INPUT, L_AL if c in "BCF" else C_AL, BOX)
-    mcol = L(MC + k)
-    put(ws, f"G{r}", f'=IF(A{r}="","",COUNTIF({MX}!{mcol}${E0}:{mcol}${E1},"C"))', f(10, True), GREY, C_AL, BOX)
-    put(ws, f"H{r}", f'=IF(AND(A{r}<>"",G{r}=1),INDEX({MX}!$B${E0}:$B${E1},MATCH("C",{MX}!{mcol}${E0}:{mcol}${E1},0)),"")', f(9), GREY, L_AL, BOX)
-    put(ws, f"I{r}", f'=IF(AND(A{r}<>"",G{r}=1),1+(1000-ROW())/100000,0)', f(8, color="FFFFFF"))
-    ws.row_dimensions[r].height = 30
-for d in range(D_N):
-    r = D0 + d
-    a = AREAS[d] if d < len(AREAS) else None
-    put(ws, f"J{r}", a["name"] if a else None, f(10, True), INPUT, L_AL, BOX)
-    put(ws, f"K{r}", a["code"] if a else None, f(), INPUT, C_AL, BOX)
-    put(ws, f"L{r}", ("Production" if a["kind"] == "PRODUCTION" else "Plant-wide") if a else None, f(), INPUT, C_AL, BOX)
-    put(ws, f"M{r}", f'=IF(J{r}="","",COUNTIF($B${SK0}:$B${SK1},J{r}))', f(10, True), GREY, C_AL, BOX)
-    put(ws, f"N{r}", a["description"] if a else None, f(9), INPUT, L_AL, BOX)
-    put(ws, f"O{r}", f'=IF(L{r}="Production",COUNTIF(L${D0}:L{r},"Production"),"")', f(8, color="FFFFFF"))
-put(ws, f"J{D1 + 2}", "Proofing and Baking are left out on purpose (frozen operations only). Add them in a spare row if needed.", f(9, italic=True, color=MUTED))
-dv(ws, f"={LISTS['C']}", f"D{SK0}:D{SK1}")
-dv(ws, f"=$J${D0}:$J${D1}", f"B{SK0}:B{SK1}")
-dv(ws, f"={LISTS['K']}", f"L{D0}:L{D1}")
-ws.column_dimensions["I"].hidden = True
-ws.column_dimensions["O"].hidden = True
-ws.freeze_panes = "D5"
-DEPT_NAMES = f"{SKN}!$J${D0}:$J${D1}"
 
 # ================================================================== Job Requirements
 ws = S["Job Requirements"]
-title(ws, "Job Requirements", "Mark “Yes” for every department a job title must be fully qualified in. Unassessed required skills show RED on the matrix.", navcol="D")
-head(ws, 5, 2, "Job title")
+title(ws, "Job Requirements", "Mark “Yes” for every department a job title must be qualified in. Unassessed required skills show light red on the matrix.", navcol="D")
 ws.column_dimensions["A"].width = 2
 ws.column_dimensions["B"].width = 26
-for d in range(D_N):
-    c = 3 + d
-    head(ws, 5, c, f'={SKN}!J{D0 + d}', rotate=90)
-    ws.column_dimensions[L(c)].width = 6
+head(ws, 5, 2, "Job title")
+for d, name in enumerate(DEPTS):
+    head(ws, 5, 3 + d, name, rotate=90)
+    ws.column_dimensions[L(3 + d)].width = 6
 ws.row_dimensions[5].height = 150
+JLAST = L(2 + ND)
 for j in range(JR_N):
     r = JR0 + j
     job = JOBS[j] if j < len(JOBS) else None
     put(ws, (r, 2), job["title"] if job else None, f(10, True), INPUT, L_AL, BOX)
-    for d in range(D_N):
-        code = AREAS[d]["code"] if d < len(AREAS) else None
-        put(ws, (r, 3 + d), "Yes" if job and code in job["areas"] else None, f(10, True), INPUT, C_AL, BOX)
-JR_GRID = f"{JR}!$C${JR0}:${L(2 + D_N)}${JR0 + JR_N - 1}"
+    for d, a in enumerate(AREAS):
+        put(ws, (r, 3 + d), "Yes" if job and a["code"] in job["areas"] else None, f(10, True), INPUT, C_AL, BOX)
+JR_GRID = f"{JR}!$C${JR0}:${JLAST}${JR0 + JR_N - 1}"
 JR_JOBS = f"{JR}!$B${JR0}:$B${JR0 + JR_N - 1}"
-JR_DEPTS = f"{JR}!$C$5:${L(2 + D_N)}$5"
-dv(ws, f"={LISTS['C']}", f"C{JR0}:{L(2 + D_N)}{JR0 + JR_N - 1}")
-ws.conditional_formatting.add(f"C{JR0}:{L(2 + D_N)}{JR0 + JR_N - 1}", CellIsRule(operator="equal", formula=['"Yes"'], fill=fill("1E63C4"), font=Font(name=FONT, bold=True, color="FFFFFF")))
+JR_DEPTS = f"{JR}!$C$5:${JLAST}$5"
+dv(ws, f"={LISTS['D']}", f"C{JR0}:{JLAST}{JR0 + JR_N - 1}")
+ws.conditional_formatting.add(f"C{JR0}:{JLAST}{JR0 + JR_N - 1}", CellIsRule(operator="equal", formula=['"Yes"'], fill=fill("1E63C4"), font=Font(name=FONT, bold=True, color="FFFFFF")))
+put(ws, (JR0 + JR_N + 1, 2), "Add new job titles in the empty yellow rows. Department columns are fixed.", f(9, italic=True, color=MUTED))
 ws.freeze_panes = "C6"
-
-# ================================================================== Career Levels
-ws = S["Career Levels"]
-title(ws, "Career Levels & Promotion Rules", "DEMONSTRATION rules – not official CHG policy. HR edits the yellow cells. Time employed is never a requirement.", navcol="H")
-hdr = [("Rank", 6), ("Level title", 24), ("Description", 40), ("Must be qualified in own department", 14), ("Min. production departments qualified", 14),
-       ("Food safety required", 11), ("Safety required", 11), ("Must currently be level", 11), ("Confirmed during review (manual)", 44)]
-for i, (h, w) in enumerate(hdr, start=2):
-    head(ws, 5, i, h)
-    ws.column_dimensions[L(i)].width = w
-ws.column_dimensions["A"].width = 2
-ws.row_dimensions[5].height = 54
-RULES = {0: ("", 0, "", "", None, ""), 1: ("Yes", 0, "Yes", "Yes", 0, "Supervisor approval"), 2: ("No", 2, "Yes", "Yes", 1, "Supervisor approval"),
-         3: ("No", 3, "Yes", "No", 2, "Supervisor confirms independent problem-solving"), 4: ("No", 0, "No", "No", 3, "Approved train-the-trainer program; supervisor and HR approval")}
-for i, lv in enumerate(LEVELS):
-    r = 6 + i
-    e, mn, fs, sa, cur, man = RULES[lv["rank"]]
-    put(ws, (r, 2), lv["rank"], f(10, True), None, C_AL, BOX)
-    for c, v in zip(range(3, 11), (lv["name"], lv["description"], e, mn, fs, sa, cur, man)):
-        put(ws, (r, c), v if v != "" else None, f(10, c == 3), INPUT, L_AL if c in (3, 4, 10) else C_AL, BOX)
-    ws.row_dimensions[r].height = 32
-put(ws, "B13", "Food safety department", f(10, True))
-put(ws, "E13", "Food Safety & GMP", f(), INPUT, None, BOX)
-put(ws, "B14", "Safety department", f(10, True))
-put(ws, "E14", "Safety", f(), INPUT, None, BOX)
-put(ws, "B16", "Promotion workflow: Supervisor recommends → Production Manager reviews → HR verifies qualification & pay policy → Plant Leadership gives final approval. "
-               "No pay changes happen in this workbook.", f(9, italic=True, color=MUTED))
-dv(ws, f"={LISTS['C']}", "E6:E10")
-dv(ws, f"={LISTS['C']}", "G6:H10")
-LV_NAMES = f"{LVL}!$C$6:$C$10"
 
 # ================================================================== sample people (fictional)
 rnd = random.Random(20261109)
@@ -283,270 +178,190 @@ for s in range(3):
 plan += [("Production Associate", 2), ("Sanitation Technician", 1)]
 job_areas = {j["title"]: j["areas"] for j in JOBS}
 cross = {"PW": "MX", "MX": "BL", "BL": "PW", "PK": "PL", "PL": "PK", "DF": "SF", "SF": "DF", "LS": "PK"}
-skill_by = {}
+code_name = {a["code"]: a["name"] for a in AREAS}
+by_code = {}
 for k, s in enumerate(SKILLS):
-    skill_by.setdefault(s[5], []).append((k, s))
+    by_code.setdefault(s[0].split("-")[0], []).append(k)
 people = []
 for i, (role, s) in enumerate(plan):
     primary = CFG["PRIMARY_AREA_FOR_ROLE"][role]
     trainee = role == "Production Associate" or i % 13 == 7
-    p = {"id": f"DEMO-{1001 + i}", "first": first[i % len(first)], "last": last[i % len(last)], "shift": SHIFTS[s], "dept": CODE2NAME[primary],
-         "job": role, "hire": TODAY - timedelta(days=int((rnd.uniform(1, 3) if trainee else rnd.uniform(6, 60)) * 30.4)),
-         "sup": cols["I"][1][s], "level": LEVELS[0 if trainee else (2 if role == "Line Lead" else 1)]["name"], "status": {}, "log": {}}
+    p = {"id": f"DEMO-{1001 + i}", "first": first[i % len(first)], "last": last[i % len(last)], "shift": SHIFTS[s], "dept": code_name[primary], "job": role,
+         "sup": lists["F"][1][s], "hire": TODAY - timedelta(days=int((rnd.uniform(1, 3) if trainee else rnd.uniform(6, 60)) * 30.4)), "st": {}}
     areas = list(job_areas[role])
-    xa = cross[primary] if (not trainee and rnd.random() < 0.35 and primary in cross) else None
-    if xa:
-        areas.append(xa)
+    if not trainee and rnd.random() < 0.35 and primary in cross:
+        areas.append(cross[primary])
     for code in areas:
-        for k, sk in skill_by.get(code, []):
+        for k in by_code.get(code, []):
             x = rnd.random()
             if trainee:
-                st = ("C" if x < .6 else "IT") if code in ("FS", "SA") else ("TR" if x < .15 else "IT" if x < .7 else "")
+                st = ("C" if x < .6 else "IT") if code in ("FS", "SA") else ("TR" if x < .15 else "IT" if x < .7 else "NT" if x < .85 else "")
             else:
-                st = "C" if x < .86 else "TR" if x < .92 else "IT" if x < .97 else ""
+                st = "C" if x < .9 else "TR" if x < .94 else "IT" if x < .98 else ""
             if st:
-                p["status"][k] = st
+                p["st"][k] = st
     people.append(p)
-
-
-def set_area(p, code, st, months_ago):
-    for k, sk in skill_by[code]:
-        p["status"][k] = st
-        if st == "C":
-            p["log"][k] = {"ver": TODAY - timedelta(days=int(months_ago * 30.4))}
 
 
 def find(role, shift, nth=0):
     return [p for p in people if p["job"] == role and p["shift"] == shift][nth]
 
 
-multi = find("Pre-Weigh Operator", "A")
-for c in ("PW", "MX", "FS", "SA"):
-    set_area(multi, c, "C", 3)
-multi.update(first="Alex", last="Multiskill-Sample", level=LEVELS[1]["name"])
-mixer = find("Mixer Operator", "B")
-for c in ("MX", "FS", "SA"):
-    set_area(mixer, c, "C", 5)
-trainee = find("Mixer Operator", "A", 1)
-set_area(trainee, "MX", "IT", 0)
-trainee.update(first="Jordan", last="Trainee-Sample", level=LEVELS[0]["name"])
-blender = find("Blending Operator", "B")
-for c in ("BL", "FS", "SA"):
-    set_area(blender, c, "C", 6)
-btm = next(k for k, s in skill_by["BL"] if s[2] == "Blend time monitoring")
-blender["status"][btm] = "TR"
-blender["log"][btm] = {"pending": True}
-blender.update(first="Taylor", last="Pending-Sample")
-packer = find("Packaging Operator", "C")
-for c in ("PK", "MD", "PL", "FS", "SA"):
-    set_area(packer, c, "C", 4)
-packer.update(first="Morgan", last="Promotion-Sample", level=LEVELS[1]["name"])
-freezer = find("Freezer Operator", "A")
-for c in ("SF", "FS", "SA"):
-    set_area(freezer, c, "C", 5)
-haccp = next(k for k, s in skill_by["FS"] if s[2].startswith("HACCP"))
-gmp = next(k for k, s in skill_by["FS"] if s[2].startswith("GMPs"))
-freezer["log"][haccp] = {"ver": TODAY - timedelta(days=395)}
-freezer["log"][gmp] = {"ver": TODAY - timedelta(days=365 - 14)}
-freezer.update(first="Riley", last="Expired-Sample")
+def set_area(p, code, st):
+    for k in by_code[code]:
+        p["st"][k] = st
 
-log_rows = []
-for p in people:
-    for k, st in sorted(p["status"].items()):
-        sk = SKILLS[k]
-        lg = p["log"].get(k, {})
-        if st == "C":
-            months_req = REQUAL_SKILL.get(sk[2]) or REQUAL.get(sk[5])
-            ver = lg.get("ver") or TODAY - timedelta(days=int((rnd.uniform(.5, 11) if months_req else rnd.uniform(1, 30)) * 30.4))
-            log_rows.append([p["id"], sk[0], "Demo Trainer", ver - timedelta(days=30), ver - timedelta(days=7), "4 Follow Up", "Pass", "Yes", ver - timedelta(days=1),
-                             "Signed checklist (sample)" if sk[3] else None, "Demo Production Manager", ver, "Sample record"])
-        elif st == "TR":
-            pend = lg.get("pending")
-            log_rows.append([p["id"], sk[0], "Demo Trainer", TODAY - timedelta(days=30), TODAY + timedelta(days=7), "4 Follow Up",
-                             "Pass" if pend else None, "Yes" if pend else None, TODAY - timedelta(days=3) if pend else None, None, None, None,
-                             "Ready for sign-off (sample)" if pend else "Sample record"])
-        elif st == "IT" and (p is trainee or rnd.random() < .5):
-            due = TODAY + timedelta(days=rnd.randint(-6, 40))
-            log_rows.append([p["id"], sk[0], "Demo Trainer", TODAY - timedelta(days=20), due, rnd.choice(["2 Present", "3 Try Out"]), None, None, None, None, None, None, "Sample record"])
+
+m = find("Pre-Weigh Operator", "A")
+for c in ("PW", "MX", "FS", "SA"):
+    set_area(m, c, "C")
+m.update(first="Alex", last="Multiskill-Sample")
+t = find("Mixer Operator", "A", 1)
+set_area(t, "MX", "IT")
+t.update(first="Jordan", last="Trainee-Sample")
+pk = find("Packaging Operator", "C")
+for c in ("PK", "MD", "PL", "FS", "SA"):
+    set_area(pk, c, "C")
+pk.update(first="Morgan", last="Crosstrained-Sample")
+na = find("Freezer Operator", "A")
+for c in ("SF", "FS", "SA"):
+    set_area(na, c, "C")
+na["st"][by_code["SF"][-1]] = "N/A"          # example: one skill not applicable to this person
+na.update(first="Riley", last="NA-Example-Sample")
+
+# ================================================================== Calc layout (used by several sheets)
+BL = ["C", "N", "T", "R", "Q"]           # competent, not-applicable, in-training, required(0/1), qualified(0/1)
+BS = {b: 6 + i * ND for i, b in enumerate(BL)}
+SUMC = 6 + len(BL) * ND + 1
+SUMS = ["req", "comp", "gaps", "tr", "prod", "full", "key"]
+SC = {n: SUMC + i for i, n in enumerate(SUMS)}
+CL = {n: L(c) for n, c in SC.items()}
 
 # ================================================================== Employees
 ws = S["Employees"]
-title(ws, "Employees", "One row per person. Type in the yellow cells; grey cells calculate. Rows marked Sample are fictional – overwrite or delete them.", navcol="L")
-ecols = [("Employee ID", 11), ("First name", 13), ("Last name", 17), ("Shift", 7), ("Department", 18), ("Job title", 20), ("Hire date", 11),
-         ("Supervisor", 20), ("Career level", 20), ("Status", 9), ("Sample?", 8), ("Full name", 22), ("Skills required", 9), ("Competent (verified)", 10),
-         ("Gaps", 7), ("% Ready", 8), ("In training", 9), ("Production depts qualified", 11), ("Cross-trained", 9), ("Next level", 20),
-         ("Promotion check", 24), ("What is still missing", 44)]
+title(ws, "Employees", "One row per person. Type in the yellow cells; grey cells calculate. Rows marked Sample are fictional – overwrite or delete them.", navcol="K")
+ecols = [("Employee ID", 11), ("First name", 13), ("Last name", 18), ("Shift", 7), ("Department", 20), ("Job title", 20), ("Supervisor", 20), ("Hire date", 11),
+         ("Sample?", 8), ("Full name", 24), ("Skills required", 9), ("Competent", 10), ("Gaps", 7), ("% Ready", 8), ("In training (IT/TR)", 10),
+         ("Production depts qualified", 11), ("Cross-trained", 9), ("Summary", 22)]
 for i, (h, w) in enumerate(ecols, start=1):
-    head(ws, 5, i, h, NAVY if i <= 11 else "404040")
+    head(ws, 5, i, h, NAVY if i <= 9 else "404040")
     ws.column_dimensions[L(i)].width = w
 ws.row_dimensions[5].height = 44
 for k in range(E_N):
     r = E0 + k
     p = people[k] if k < len(people) else None
-    vals = [p["id"], p["first"], p["last"], p["shift"], p["dept"], p["job"], p["hire"], p["sup"], p["level"], "Active", "Yes"] if p else [None] * 11
+    vals = [p["id"], p["first"], p["last"], p["shift"], p["dept"], p["job"], p["sup"], p["hire"], "Yes"] if p else [None] * 9
     for c, v in enumerate(vals, start=1):
-        put(ws, (r, c), v, f(10), INPUT, L_AL if c in (2, 3, 5, 6, 8, 9) else C_AL, BOX, "dd-mmm-yy" if c == 7 else None)
-    cr = f"{CALC}!"
-    formulas = [
-        f'=IF(B{r}="","",B{r}&" "&C{r})', f'=IF(A{r}="","",{cr}{CL["EZ_req"]}{r})', f'=IF(A{r}="","",{cr}{CL["FA_comp"]}{r})', f'=IF(A{r}="","",M{r}-N{r})',
-        f'=IF(OR(A{r}="",N(M{r})=0),"",N{r}/M{r})', f'=IF(A{r}="","",{cr}{CL["FC_tr"]}{r})', f'=IF(A{r}="","",{cr}{CL["FD_prod"]}{r})', f'=IF(A{r}="","",IF(R{r}>=2,"Yes",""))',
-        f'=IF(A{r}="","",IFERROR(INDEX({LV_NAMES},{cr}{CL["FH_next"]}{r}+1),"Top level"))',
-        f'=IF(A{r}="","",IF({cr}{CL["FN_ready"]}{r},"Meets requirements – ready for review","Not yet"))', f'=IF(A{r}="","",{cr}{CL["FO_missing"]}{r})',
-    ]
-    for c, fm in enumerate(formulas, start=12):
-        put(ws, (r, c), fm, f(10, c in (12, 15, 16)), GREY, L_AL if c in (12, 20, 21, 22) else C_AL, BOX, "0%" if c == 16 else None)
+        put(ws, (r, c), v, f(10), INPUT, L_AL if c in (2, 3, 5, 6, 7) else C_AL, BOX, "dd-mmm-yy" if c == 8 else None)
+    fm = [f'=IF(A{r}="","",TRIM(B{r}&" "&C{r}))', f'=IF(A{r}="","",{CALC}!{CL["req"]}{r})', f'=IF(A{r}="","",{CALC}!{CL["comp"]}{r})',
+          f'=IF(A{r}="","",{CALC}!{CL["gaps"]}{r})', f'=IF(OR(A{r}="",N(K{r})=0),"",L{r}/K{r})', f'=IF(A{r}="","",{CALC}!{CL["tr"]}{r})',
+          f'=IF(A{r}="","",{CALC}!{CL["prod"]}{r})', f'=IF(A{r}="","",IF(P{r}>=2,"Yes",""))',
+          f'=IF(A{r}="","",IF(F{r}="","Choose a job title",IF(ISNA(MATCH(F{r},{JR_JOBS},0)),"Job title not on Job Requirements",IF(K{r}=0,"No skills required",IF(M{r}=0,"Fully qualified",M{r}&" skill gap"&IF(M{r}=1,"","s"))))))']
+    for c, x in enumerate(fm, start=10):
+        put(ws, (r, c), x, f(10, c in (10, 13, 14)), GREY, L_AL if c in (10, 18) else C_AL, BOX, "0%" if c == 14 else None)
 dv(ws, f"={LISTS['A']}", f"D{E0}:D{E1}")
-dv(ws, f"={DEPT_NAMES}", f"E{E0}:E{E1}")
+dv(ws, f"={LISTS['C']}", f"E{E0}:E{E1}")
 dv(ws, f"={JR_JOBS}", f"F{E0}:F{E1}")
-dv(ws, f"={LISTS['I']}", f"H{E0}:H{E1}")
-dv(ws, f"={LV_NAMES}", f"I{E0}:I{E1}")
-dv(ws, f"={LISTS['H']}", f"J{E0}:J{E1}")
-dv(ws, f"={LISTS['C']}", f"K{E0}:K{E1}")
-cf_fill(ws, f"P{E0}:P{E1}", f"AND(ISNUMBER(P{E0}),P{E0}>=1)", OK_F, OK_T, stop=True)
-cf_fill(ws, f"P{E0}:P{E1}", f"AND(ISNUMBER(P{E0}),P{E0}>=0.8)", AMB_F, AMB_T, stop=True)
-cf_fill(ws, f"P{E0}:P{E1}", f"ISNUMBER(P{E0})", BAD_F, BAD_T)
-cf_fill(ws, f"U{E0}:U{E1}", f'LEFT(U{E0},5)="Meets"', "DDEBF7", NAVY)
-cf_fill(ws, f"O{E0}:O{E1}", f"AND(ISNUMBER(O{E0}),O{E0}>0)", "FFFFFF", "C00000")
-cf_fill(ws, f"K{E0}:K{E1}", f'K{E0}="Yes"', AMB_F, AMB_T)
+dv(ws, f"={LISTS['F']}", f"G{E0}:G{E1}")
+dv(ws, f"={LISTS['D']}", f"I{E0}:I{E1}")
+cf(ws, f"N{E0}:N{E1}", f"AND(ISNUMBER(N{E0}),N{E0}>=1)", OK_F, OK_T, stop=True)
+cf(ws, f"N{E0}:N{E1}", f"AND(ISNUMBER(N{E0}),N{E0}>=0.8)", AMB_F, AMB_T, stop=True)
+cf(ws, f"N{E0}:N{E1}", f"ISNUMBER(N{E0})", BAD_F, BAD_T)
+cf(ws, f"M{E0}:M{E1}", f"AND(ISNUMBER(M{E0}),M{E0}>0)", "FFFFFF", "C00000")
+cf(ws, f"I{E0}:I{E1}", f'I{E0}="Yes"', AMB_F, AMB_T)
+cf(ws, f"A{E0}:A{E1}", f'AND(A{E0}<>"",COUNTIF($A${E0}:$A${E1},A{E0})>1)', "FF7C80", "FFFFFF")
+put(ws, "M2", "Red Employee ID = duplicate ID.", f(9, italic=True, color="C00000"))
 ws.freeze_panes = "D6"
-ws.auto_filter.ref = f"A5:V{E1}"
+ws.auto_filter.ref = f"A5:R{E1}"
 EMP_IDS = f"{EMP}!$A${E0}:$A${E1}"
-EMP_NAMES = f"{EMP}!$L${E0}:$L${E1}"
-
-# ================================================================== Training Log
-ws = S["Training Log"]
-title(ws, "Training & Qualification Log", "ONE row per employee per competency. Assign → train (TWI) → practical evaluation → verify. When someone requalifies, update the verification date on the same row.", navcol="J")
-lcols = [("Employee ID", 11), ("Employee (auto)", 22), ("Skill ID", 9), ("Competency (auto)", 30), ("Department (auto)", 18), ("Critical (auto)", 8),
-         ("Trainer / evaluator", 20), ("Start date", 11), ("Due date", 11), ("TWI step", 12), ("Practical result", 11), ("Operated independently", 11),
-         ("Practical date", 11), ("Evidence reference", 22), ("Verified by", 22), ("Verification date", 12), ("Requalify months (auto)", 10),
-         ("Expires (auto)", 11), ("Status (auto)", 24), ("Notes", 30), ("key", 4)]
-for i, (h, w) in enumerate(lcols, start=1):
-    head(ws, 5, i, h, NAVY if i not in (2, 4, 5, 6, 17, 18, 19) else "404040")
-    ws.column_dimensions[L(i)].width = w
-ws.row_dimensions[5].height = 44
-SKA, SKB, SKC, SKD, SKE = (f"{SKN}!${c}${SK0}:${c}${SK1}" for c in "ABCDE")
-inputs = {1: 0, 3: 1, 7: 2, 8: 3, 9: 4, 10: 5, 11: 6, 12: 7, 13: 8, 14: 9, 15: 10, 16: 11, 20: 12}
-for k in range(LOG_N):
-    r = LOG0 + k
-    row = log_rows[k] if k < len(log_rows) else None
-    for c, idx in inputs.items():
-        put(ws, (r, c), row[idx] if row else None, f(9), INPUT, L_AL if c in (7, 14, 15, 20) else C_AL, BOX, "dd-mmm-yy" if c in (8, 9, 13, 16) else None)
-    put(ws, (r, 2), f'=IF(A{r}="","",IFERROR(INDEX({EMP_NAMES},MATCH(A{r},{EMP_IDS},0)),"Unknown ID"))', f(9), GREY, L_AL, BOX)
-    put(ws, (r, 4), f'=IF(C{r}="","",IFERROR(INDEX({SKC},MATCH(C{r},{SKA},0)),"Unknown skill"))', f(9), GREY, L_AL, BOX)
-    put(ws, (r, 5), f'=IF(C{r}="","",IFERROR(INDEX({SKB},MATCH(C{r},{SKA},0)),""))', f(9), GREY, L_AL, BOX)
-    put(ws, (r, 6), f'=IF(C{r}="","",IFERROR(INDEX({SKD},MATCH(C{r},{SKA},0)),""))', f(9), GREY, C_AL, BOX)
-    put(ws, (r, 17), f'=IF(C{r}="","",IFERROR(IF(INDEX({SKE},MATCH(C{r},{SKA},0))="","",INDEX({SKE},MATCH(C{r},{SKA},0))),""))', f(9), GREY, C_AL, BOX)
-    put(ws, (r, 18), f'=IF(OR(P{r}="",NOT(ISNUMBER(Q{r}))),"",EDATE(P{r},Q{r}))', f(9), GREY, C_AL, BOX, "dd-mmm-yy")
-    put(ws, (r, 19),
-        f'=IF(A{r}="","",IF(P{r}<>"",IF(OR(K{r}<>"Pass",L{r}<>"Yes"),"Invalid – no passed practical",IF(AND(F{r}="Yes",N{r}=""),"Invalid – evidence missing",'
-        f'IF(AND(O{r}<>"",O{r}=G{r}),"Invalid – verifier ran the practical",IF(AND(R{r}<>"",R{r}<TODAY()),"Expired",IF(AND(R{r}<>"",R{r}<TODAY()+30),"Expiring soon","Qualified"))))),'
-        f'IF(K{r}="Pass",IF(L{r}="Yes","Ready to verify","Pass must confirm independent operation"),IF(AND(I{r}<>"",I{r}<TODAY()),"Overdue",IF(H{r}<>"","In progress","Assigned")))))',
-        f(9, True), GREY, L_AL, BOX)
-    put(ws, (r, 21), f'=IF(A{r}="","",A{r}&"|"&C{r})', f(7, color="FFFFFF"))
-LG = {c: f"{LOG}!${c}${LOG0}:${c}${LOG1}" for c in "ACESU"}
-dv(ws, f"={EMP_IDS}", f"A{LOG0}:A{LOG1}")
-dv(ws, f"={SKA}", f"C{LOG0}:C{LOG1}")
-dv(ws, f"={LISTS['J']}", f"G{LOG0}:G{LOG1}")
-dv(ws, f"={LISTS['E']}", f"J{LOG0}:J{LOG1}")
-dv(ws, f"={LISTS['D']}", f"K{LOG0}:K{LOG1}")
-dv(ws, f"={LISTS['C']}", f"L{LOG0}:L{LOG1}")
-dv(ws, f"={LISTS['J']}", f"O{LOG0}:O{LOG1}")
-sr = f"S{LOG0}:S{LOG1}"
-for txt, fc, tc in (("Qualified", "1E63C4", "FFFFFF"), ("Expiring soon", AMB_F, AMB_T), ("Expired", EXP[0], "FFFFFF"), ("Ready to verify", "DDEBF7", NAVY),
-                    ("Overdue", BAD_F, BAD_T), ("In progress", "F2C230", INK)):
-    ws.conditional_formatting.add(sr, CellIsRule(operator="equal", formula=[f'"{txt}"'], fill=fill(fc), font=Font(name=FONT, bold=True, color=tc)))
-cf_fill(ws, sr, f'LEFT(S{LOG0},7)="Invalid"', BAD_F, BAD_T)
-cf_fill(ws, f"A{LOG0}:A{LOG1}", f'COUNTIF($U${LOG0}:$U${LOG1},U{LOG0})>1', "FF7C80", "FFFFFF")
-ws.column_dimensions["U"].hidden = True
-ws.freeze_panes = "C6"
-ws.auto_filter.ref = f"A5:T{LOG1}"
-put(ws, "L2", "Red Employee ID = duplicate row for the same skill (keep one row per person per skill).", f(9, italic=True, color="C00000"))
+EMP_NAMES = f"{EMP}!$J${E0}:$J${E1}"
+ECOL = lambda c: f"{EMP}!${c}${E0}:${c}${E1}"  # noqa: E731
 
 # ================================================================== Skills Matrix
 ws = S["Skills Matrix"]
-title(ws, "Production Skills Matrix", "Pick a status in each cell: NT Needs Training · IT In Training · TR Trained · C Competent · N/A. Red empty cell = required for the job, not assessed yet.", navcol="D")
+title(ws, "Production Skills Matrix", "Pick a status in each cell: NT Needs Training · IT In Training · TR Trained · C Competent · N/A Not Applicable. Light red empty cell = required for the job, not assessed yet.", navcol="D")
 ws.row_dimensions[2].height = 10
-for i, (h, w) in enumerate([("Employee ID", 11), ("Employee", 22), ("Shift", 6), ("Department", 16), ("Job title", 18), ("% Ready", 8)], start=1):
+for i, (h, w) in enumerate([("Employee ID", 11), ("Employee", 24), ("Shift", 6), ("Department", 17), ("Job title", 19), ("% Ready", 8)], start=1):
     ws.merge_cells(start_row=3, start_column=i, end_row=5, end_column=i)
     head(ws, 3, i, h, NAVY if i < 6 else "404040")
     ws.column_dimensions[L(i)].width = w
-for k in range(SK_N):
+for k, (sid, dept, name, crit) in enumerate(SKILLS):
     c = MC + k
-    col = L(c)
-    sr_ = SK0 + k
-    put(ws, (2, c), f"={SKN}!B{sr_}&\"\"", f(6, color="FFFFFF"))
+    put(ws, (2, c), dept, f(6, color="FFFFFF"))
     head(ws, 3, c, None, "2E4A7A", size=9)
-    head(ws, 4, c, f'={SKN}!A{sr_}&""', "2E4A7A", size=8)
-    h5 = head(ws, 5, c, f'=IF({SKN}!D{sr_}="Yes","◆ ","")&{SKN}!C{sr_}', "2E4A7A", rotate=90, size=9)
-    ws.column_dimensions[col].width = 4.6
-put(ws, "A2", None)
-ws.row_dimensions[3].height = 22
+    head(ws, 4, c, sid, "2E4A7A", size=8)
+    head(ws, 5, c, ("◆ " if crit else "") + name, "2E4A7A", rotate=90, size=9)
+    ws.column_dimensions[L(c)].width = 4.6
+start = MC
+for a in AREAS:
+    n = len(a["competencies"])
+    ws.merge_cells(start_row=3, start_column=start, end_row=3, end_column=start + n - 1)
+    ws.cell(3, start, a["name"]).alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    ws.column_dimensions.group(L(start), L(start + n - 1), outline_level=1, hidden=False)
+    start += n
+ws.sheet_properties.outlinePr.summaryRight = False
+ws.row_dimensions[3].height = 26
 ws.row_dimensions[5].height = 210
-seed_by_row = {}
 for k in range(E_N):
     r = E0 + k
-    for c, src in zip("ABCDE", "ALDEF"):
+    for c, src in zip("ABCDE", "AJDEF"):
         put(ws, f"{c}{r}", f'=IF({EMP}!$A{r}="","",{EMP}!{src}{r})', f(10, c == "B"), None, L_AL if c in "BDE" else C_AL, BOX)
-    put(ws, f"F{r}", f'=IF({EMP}!$A{r}="","",{EMP}!P{r})', f(10, True), GREY, C_AL, BOX, "0%")
+    put(ws, f"F{r}", f'=IF({EMP}!$A{r}="","",{EMP}!N{r})', f(10, True), GREY, C_AL, BOX, "0%")
     p = people[k] if k < len(people) else None
-    for j in range(SK_N):
-        cell = ws.cell(r, MC + j, p["status"].get(j) if p else None)
+    for j in range(NS):
+        cell = ws.cell(r, MC + j, p["st"].get(j) if p else None)
         cell.font = f(9, True)
         cell.alignment = C_AL
         cell.border = BOX
     ws.row_dimensions[r].height = 18
 grid = f"{MCL}{E0}:{MLAST}{E1}"
 tl = f"{MCL}{E0}"
-key = f'$A{E0}&"|"&{MCL}$4'
-cf_fill(ws, grid, f'AND({tl}="C",COUNTIFS({LG["U"]},{key},{LG["S"]},"Expired")>0)', EXP[0], EXP[1], stop=True)
-cf_fill(ws, grid, f'AND({tl}="C",COUNTIFS({LG["U"]},{key},{LG["S"]},"Qualified")+COUNTIFS({LG["U"]},{key},{LG["S"]},"Expiring soon")=0)', UNVER[0], UNVER[1], stop=True)
 for code, (fc, tc, _) in ST.items():
-    cf_fill(ws, grid, f'{tl}="{code}"', fc, tc, stop=True)
+    cf(ws, grid, f'{tl}="{code}"', fc, tc, stop=True)
 req = f'IFERROR(INDEX({JR_GRID},MATCH($E{E0},{JR_JOBS},0),MATCH({MCL}$2,{JR_DEPTS},0)),"")="Yes"'
-cf_fill(ws, grid, f'AND({tl}="",$A{E0}<>"",{MCL}$4<>"",{req})', "F4B6B6", "C62828")
-cf_fill(ws, f"F{E0}:F{E1}", f"AND(ISNUMBER(F{E0}),F{E0}>=1)", OK_F, OK_T, stop=True)
-cf_fill(ws, f"F{E0}:F{E1}", f"AND(ISNUMBER(F{E0}),F{E0}>=0.8)", AMB_F, AMB_T, stop=True)
-cf_fill(ws, f"F{E0}:F{E1}", f"ISNUMBER(F{E0})", BAD_F, BAD_T)
-dv(ws, f"={LISTS['B']}", grid, "NT Needs Training | IT In Training | TR Trained | C Competent (needs a verified row in the Training Log) | N/A", "Skill status")
-# department labels (merged per starting group) + one collapsible column group per department
-start = MC
-for a in AREAS:
-    n = len(a["competencies"])
-    ws.merge_cells(start_row=3, start_column=start, end_row=3, end_column=start + n - 1)
-    lab = ws.cell(3, start, f"={L(start)}2")
-    lab.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-    ws.column_dimensions.group(L(start), L(start + n - 1), outline_level=1, hidden=False)
-    start += n
-ws.merge_cells(start_row=3, start_column=start, end_row=3, end_column=MC + SK_N - 1)
-ws.cell(3, start, "Spare columns – add skills on Departments & Skills").alignment = Alignment(horizontal="left", vertical="center")
-ws.column_dimensions.group(L(start), MLAST, outline_level=1, hidden=False)
-ws.sheet_properties.outlinePr.summaryRight = False
+cf(ws, grid, f'AND({tl}="",$A{E0}<>"",{req})', REQ_BLANK[0], REQ_BLANK[1])
+cf(ws, f"F{E0}:F{E1}", f"AND(ISNUMBER(F{E0}),F{E0}>=1)", OK_F, OK_T, stop=True)
+cf(ws, f"F{E0}:F{E1}", f"AND(ISNUMBER(F{E0}),F{E0}>=0.8)", AMB_F, AMB_T, stop=True)
+cf(ws, f"F{E0}:F{E1}", f"ISNUMBER(F{E0})", BAD_F, BAD_T)
+dv(ws, f"={LISTS['B']}", grid, "NT Needs Training | IT In Training | TR Trained | C Competent | N/A Not Applicable", "Skill status")
+tr = E1 + 2
+for i, (lab, fm) in enumerate((("# Competent (C)", '"C"'), ("# In training (IT + TR)", None), ("# Needs training (NT)", '"NT"'))):
+    r = tr + i
+    ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=MC - 1)
+    put(ws, (r, 1), lab, f(10, True), al=Alignment(horizontal="right"))
+    for j in range(NS):
+        col = L(MC + j)
+        rng = f"{col}{E0}:{col}{E1}"
+        x = f'=COUNTIF({rng},"IT")+COUNTIF({rng},"TR")' if fm is None else f"=COUNTIF({rng},{fm})"
+        put(ws, (r, MC + j), x, f(9, True), GREY, C_AL, BOX)
 ws.freeze_panes = ws.cell(E0, MC)
 ws.auto_filter.ref = f"A5:F{E1}"
-c = ws["B3"]
-c.comment = Comment("Edit people on the Employees sheet. Use the + / – buttons above the column letters to collapse departments.", "CHG")
-MGRID = f"{MX}!${MCL}${E0}:${MLAST}${E1}"
 MDEPT = f"{MX}!${MCL}$2:${MLAST}$2"
+MGRID = f"{MX}!${MCL}${E0}:${MLAST}${E1}"
 
 # ================================================================== Calc (hidden)
 ws = S["Calc"]
 put(ws, "A1", "Helper calculations – do not edit.", f(10, True))
 put(ws, "A2", "Shift filter")
 put(ws, "B2", '=IF(Dashboard!$K$2="All shifts","*",Dashboard!$K$2)')
-for b in BLOCKS:
-    for d in range(D_N):
-        c = BSTART[b] + d
-        put(ws, (3, c), f"={SKN}!$J${D0 + d}&\"\"")
-        put(ws, (4, c), f"=N({SKN}!$M${D0 + d})")
-        put(ws, (5, c), f'=IF({SKN}!$L${D0 + d}="Production",1,0)')
-    put(ws, (2, BSTART[b]), b, f(9, True))
+for b in BL:
+    put(ws, (2, BS[b]), b, f(9, True))
+    for d, name in enumerate(DEPTS):
+        c = BS[b] + d
+        put(ws, (3, c), name)
+        put(ws, (4, c), f'=COUNTIF({MDEPT},{L(c)}$3)')
+        put(ws, (5, c), IS_PROD[d])
+for n, c in SC.items():
+    put(ws, (5, c), n, f(9, True))
 
 
-def blk(b, d=None, r=None, abs_row=False):
-    if d is None:
-        a, z = L(BSTART[b]), L(BSTART[b] + D_N - 1)
-        return f"${a}${r}:${z}${r}" if abs_row else f"{a}{r}:{z}{r}"
-    return f"{L(BSTART[b] + d)}{r}"
+def bc(b, d, r):
+    return f"{L(BS[b] + d)}{r}"
+
+
+def brow(b, r, absrow=False):
+    a, z = L(BS[b]), L(BS[b] + ND - 1)
+    return f"${a}${r}:${z}${r}" if absrow else f"{a}{r}:{z}{r}"
 
 
 for k in range(E_N):
@@ -555,175 +370,51 @@ for k in range(E_N):
     put(ws, (r, 2), f'=IF(A{r}="","",{EMP}!D{r})')
     put(ws, (r, 3), f'=IF(A{r}="","",{EMP}!F{r})')
     put(ws, (r, 4), f'=IF(A{r}="","",{EMP}!E{r})')
-    put(ws, (r, 5), f'=IF(A{r}="",-1,IFERROR(MATCH({EMP}!I{r},{LV_NAMES},0)-1,-1))')
     mrow = f"{MX}!${MCL}{r}:${MLAST}{r}"
-    for d in range(D_N):
-        H = L(BSTART["C"] + d)
-        put(ws, (r, BSTART["C"] + d), f'=IF(OR($A{r}="",{H}$3=""),0,COUNTIFS({MDEPT},{H}$3,{mrow},"C"))')
-        HV = L(BSTART["V"] + d)
-        put(ws, (r, BSTART["V"] + d), f'=IF(OR($A{r}="",{HV}$3=""),0,COUNTIFS({LG["A"]},$A{r},{LG["E"]},{HV}$3,{LG["S"]},"Qualified")+COUNTIFS({LG["A"]},$A{r},{LG["E"]},{HV}$3,{LG["S"]},"Expiring soon"))')
-        HT = L(BSTART["T"] + d)
-        put(ws, (r, BSTART["T"] + d), f'=IF(OR($A{r}="",{HT}$3=""),0,COUNTIFS({MDEPT},{HT}$3,{mrow},"IT")+COUNTIFS({MDEPT},{HT}$3,{mrow},"TR"))')
-        HR = L(BSTART["R"] + d)
-        put(ws, (r, BSTART["R"] + d), f'=IF(OR($A{r}="",{HR}$3=""),0,IF(IFERROR(INDEX({JR_GRID},MATCH($C{r},{JR_JOBS},0),MATCH({HR}$3,{JR_DEPTS},0)),"")="Yes",1,0))')
-        HQ = L(BSTART["Q"] + d)
-        put(ws, (r, BSTART["Q"] + d), f'=IF(AND({HQ}$4>0,{blk("C", d, r)}>={HQ}$4,{blk("V", d, r)}>={HQ}$4),1,0)')
-        put(ws, (r, BSTART["P"] + d), f'={blk("R", d, r)}*MIN({blk("C", d, r)},{blk("V", d, r)},{L(BSTART["P"] + d)}$4)')
-    A = {n: L(c) for n, c in ANCH.items()}
-    qh = f"${L(BSTART['Q'])}$3:${L(BSTART['Q'] + D_N - 1)}$3"
-    ws.cell(r, ANCH["EZ_req"]).value = f'=SUMPRODUCT({blk("R", r=r)},${L(BSTART["R"])}$4:${L(BSTART["R"] + D_N - 1)}$4)'
-    put(ws, (r, ANCH["FA_comp"]), f'=SUM({blk("P", r=r)})')
-    put(ws, (r, ANCH["FB_gaps"]), f'={A["EZ_req"]}{r}-{A["FA_comp"]}{r}')
-    put(ws, (r, ANCH["FC_tr"]), f'=SUMPRODUCT({blk("R", r=r)},{blk("T", r=r)})')
-    put(ws, (r, ANCH["FD_prod"]), f'=SUMPRODUCT({blk("Q", r=r)},${L(BSTART["Q"])}$5:${L(BSTART["Q"] + D_N - 1)}$5)')
-    put(ws, (r, ANCH["FE_fs"]), f'=IFERROR(INDEX({blk("Q", r=r)},MATCH({LVL}!$E$13,{qh},0)),0)')
-    put(ws, (r, ANCH["FF_sa"]), f'=IFERROR(INDEX({blk("Q", r=r)},MATCH({LVL}!$E$14,{qh},0)),0)')
-    put(ws, (r, ANCH["FG_prim"]), f'=IFERROR(INDEX({blk("Q", r=r)},MATCH($D{r},{qh},0)),0)')
-    put(ws, (r, ANCH["FH_next"]), f'=IF(OR($A{r}="",$E{r}<0,$E{r}>=COUNTA({LV_NAMES})-1),"",$E{r}+1)')
-    nr = f"{A['FH_next']}{r}"
-    idx = lambda col: f"INDEX({LVL}!${col}$6:${col}$10,{nr}+1)"
-    put(ws, (r, ANCH["FI_e"]), f'=IF({nr}="",FALSE,OR({idx("E")}<>"Yes",{A["FG_prim"]}{r}=1))')
-    put(ws, (r, ANCH["FJ_f"]), f'=IF({nr}="",FALSE,{A["FD_prod"]}{r}>=N({idx("F")}))')
-    put(ws, (r, ANCH["FK_g"]), f'=IF({nr}="",FALSE,OR({idx("G")}<>"Yes",{A["FE_fs"]}{r}=1))')
-    put(ws, (r, ANCH["FL_h"]), f'=IF({nr}="",FALSE,OR({idx("H")}<>"Yes",{A["FF_sa"]}{r}=1))')
-    put(ws, (r, ANCH["FM_i"]), f'=IF({nr}="",FALSE,$E{r}>=N({idx("I")}))')
-    put(ws, (r, ANCH["FN_ready"]), f'=IF({nr}="",FALSE,AND({A["FI_e"]}{r},{A["FJ_f"]}{r},{A["FK_g"]}{r},{A["FL_h"]}{r},{A["FM_i"]}{r}))')
-    put(ws, (r, ANCH["FO_missing"]),
-        f'=IF($A{r}="","",IF({nr}="","Top level reached",IF({A["FN_ready"]}{r},"Only the review confirmations remain: "&{idx("J")},'
-        f'TRIM(IF(NOT({A["FI_e"]}{r}),"Qualify in own department. ","")&IF(NOT({A["FJ_f"]}{r}),"Qualify in "&{idx("F")}&" production departments (has "&{A["FD_prod"]}{r}&"). ","")'
-        f'&IF(NOT({A["FK_g"]}{r}),"Complete food safety. ","")&IF(NOT({A["FL_h"]}{r}),"Complete safety. ","")&IF(NOT({A["FM_i"]}{r}),"Must first reach level "&{idx("I")}&". ","")))))')
-    put(ws, (r, ANCH["FP_key"]), f'=IF(AND($A{r}<>"",OR($B$2="*",$B{r}=Dashboard!$K$2),{A["FB_gaps"]}{r}>0),{A["FB_gaps"]}{r}+(1000-ROW())/100000,0)')
-    put(ws, (r, ANCH["FQ_full"]), f'=AND($A{r}<>"",{A["EZ_req"]}{r}>0,{A["FB_gaps"]}{r}=0)')
-for n, c in ANCH.items():
-    put(ws, (5, c), n)
+    for d in range(ND):
+        h = lambda b: f"{L(BS[b] + d)}$3"  # noqa: E731
+        put(ws, (r, BS["C"] + d), f'=IF($A{r}="",0,COUNTIFS({MDEPT},{h("C")},{mrow},"C"))')
+        put(ws, (r, BS["N"] + d), f'=IF($A{r}="",0,COUNTIFS({MDEPT},{h("N")},{mrow},"N/A"))')
+        put(ws, (r, BS["T"] + d), f'=IF($A{r}="",0,COUNTIFS({MDEPT},{h("T")},{mrow},"IT")+COUNTIFS({MDEPT},{h("T")},{mrow},"TR"))')
+        put(ws, (r, BS["R"] + d), f'=IF($A{r}="",0,IF(IFERROR(INDEX({JR_GRID},MATCH($C{r},{JR_JOBS},0),MATCH({h("R")},{JR_DEPTS},0)),"")="Yes",1,0))')
+        tot = f"{L(BS['Q'] + d)}$4"
+        put(ws, (r, BS["Q"] + d), f'=IF(AND({tot}>0,{bc("C", d, r)}>0,{bc("C", d, r)}+{bc("N", d, r)}>={tot}),1,0)')
+    put(ws, (r, SC["req"]), f'=SUMPRODUCT({brow("R", r)},{brow("C", 4, True)})-SUMPRODUCT({brow("R", r)},{brow("N", r)})')
+    put(ws, (r, SC["comp"]), f'=SUMPRODUCT({brow("R", r)},{brow("C", r)})')
+    put(ws, (r, SC["gaps"]), f'={CL["req"]}{r}-{CL["comp"]}{r}')
+    put(ws, (r, SC["tr"]), f'=SUMPRODUCT({brow("R", r)},{brow("T", r)})')
+    put(ws, (r, SC["prod"]), f'=SUMPRODUCT({brow("Q", r)},{brow("Q", 5, True)})')
+    put(ws, (r, SC["full"]), f'=AND($A{r}<>"",{CL["req"]}{r}>0,{CL["gaps"]}{r}=0)')
+    put(ws, (r, SC["key"]), f'=IF(AND($A{r}<>"",OR($B$2="*",$B{r}=Dashboard!$K$2),{CL["gaps"]}{r}>0),{CL["gaps"]}{r}+(1000-ROW())/100000,0)')
 ws.sheet_state = "hidden"
-CA = {n: f"{CALC}!${L(c)}${E0}:${L(c)}${E1}" for n, c in ANCH.items()}
-QB = f"{CALC}!${L(BSTART['Q'])}${E0}:${L(BSTART['Q'] + D_N - 1)}${E1}"
-QH = f"{CALC}!${L(BSTART['Q'])}$3:${L(BSTART['Q'] + D_N - 1)}$3"
+CA = {n: f"{CALC}!${L(c)}${E0}:${L(c)}${E1}" for n, c in SC.items()}
 CSHIFT = f"{CALC}!$B${E0}:$B${E1}"
 CR = f"{CALC}!$B$2"
 
-# ================================================================== Shift Coverage
-ws = S["Shift Coverage"]
-title(ws, "Shift Coverage", "Qualified = every competency in the department is Competent AND has a current verification in the Training Log. Targets (yellow) are demonstration values.", navcol="H")
-ccols = [("Department", 26), ("Shift A qualified", 10), ("Shift B qualified", 10), ("Shift C qualified", 10), ("Shift A target", 9), ("Shift B target", 9),
-         ("Shift C target", 9), ("Total qualified", 10), ("Total target", 9), ("Status", 12), ("Shifts below target", 10), ("Selected shift qualified", 11), ("Selected shift target", 11), ("key", 4)]
-for i, (h, w) in enumerate(ccols, start=2):
-    head(ws, 5, i, h)
-    ws.column_dimensions[L(i)].width = w
-ws.column_dimensions["A"].width = 2
-ws.row_dimensions[5].height = 44
-NPROD = 18
-for k in range(NPROD):
-    r = 6 + k
-    put(ws, (r, 2), f'=IFERROR(INDEX({SKN}!$J${D0}:$J${D1},MATCH({k + 1},{SKN}!$O${D0}:$O${D1},0)),"")', f(10, True), None, L_AL, BOX)
-    for i, s in enumerate(SHIFTS):
-        put(ws, (r, 3 + i), f'=IF($B{r}="","",SUMPRODUCT(({CSHIFT}="{s}")*INDEX({QB},0,MATCH($B{r},{QH},0))))', f(10, True), None, C_AL, BOX)
-        prod = [a for a in AREAS if a["kind"] == "PRODUCTION"]
-        tgt = (3 if prod[k]["code"] == "PK" else 2) if k < len(prod) and prod[k]["code"] not in ("SH", "LM", "SN", "MH") else None
-        put(ws, (r, 6 + i), tgt, f(10), INPUT, C_AL, BOX)
-    put(ws, (r, 9), f'=IF(B{r}="","",SUM(C{r}:E{r}))', f(10, True), GREY, C_AL, BOX)
-    put(ws, (r, 10), f'=IF(OR(B{r}="",COUNT(F{r}:H{r})=0),"",SUM(F{r}:H{r}))', f(10), GREY, C_AL, BOX)
-    put(ws, (r, 12), None, f(10), GREY, C_AL, BOX)
-    ws.cell(r, 12).value = f'=IF(B{r}="","",' + "+".join(f"IF(AND(ISNUMBER({t}{r}),{q}{r}<{t}{r}),1,0)" for q, t in zip("CDE", "FGH")) + ")"
-    put(ws, (r, 11), f'=IF(B{r}="","",IF(COUNT(F{r}:H{r})=0,"No target",IF(L{r}>0,"Gap","Covered")))', f(10, True), GREY, C_AL, BOX)
-    put(ws, (r, 13), f'=IF(B{r}="","",IF(Dashboard!$K$2="All shifts",I{r},INDEX(C{r}:E{r},MATCH(Dashboard!$K$2,{{"A","B","C"}},0))))', f(10, True), GREY, C_AL, BOX)
-    put(ws, (r, 14), f'=IF(B{r}="","",IF(Dashboard!$K$2="All shifts",J{r},INDEX(F{r}:H{r},MATCH(Dashboard!$K$2,{{"A","B","C"}},0))))', f(10), GREY, C_AL, BOX)
-    put(ws, (r, 15), f'=IF(N(L{r})>0,L{r}+(100-ROW())/1000,0)', f(7, color="FFFFFF"))
-    for q, t in zip("CDE", "FGH"):
-        cf_fill(ws, f"{q}{r}", f"AND(ISNUMBER({t}{r}),{q}{r}<{t}{r})", BAD_F, BAD_T)
-        cf_fill(ws, f"{q}{r}", f"AND(ISNUMBER({t}{r}),{q}{r}>={t}{r})", "DDEBF7", "1E63C4")
-for txt, fc, tc in (("Covered", "DDEBF7", "1E63C4"), ("Gap", BAD_F, BAD_T), ("No target", "EDEFF2", MUTED)):
-    ws.conditional_formatting.add(f"K6:K{5 + NPROD}", CellIsRule(operator="equal", formula=[f'"{txt}"'], fill=fill(fc), font=Font(name=FONT, bold=True, color=tc)))
-ws.column_dimensions["O"].hidden = True
-put(ws, (7 + NPROD, 2), "Scheduled qualified headcount: UNKNOWN · Available qualified headcount: UNKNOWN – no scheduling or attendance system is connected, so these are not estimated.", f(10, True, "7F6000"))
-put(ws, (8 + NPROD, 2), "Plant-wide trainings (Food Safety & GMP, Safety) are not production stations and are not listed here.", f(9, italic=True, color=MUTED))
-ws.freeze_panes = "C6"
-COV_ROWS = (6, 5 + NPROD)
 
-# ================================================================== Promotion Review
-ws = S["Promotion Review"]
-title(ws, "Promotion Review", "Supervisor recommends → Production Manager → HR (qualification & pay policy) → Final approval. Recommendations only: nothing here changes pay. Keep signed copies.", navcol="F")
-pcols = [("Employee ID", 11), ("Employee (auto)", 20), ("Current level (auto)", 18), ("Recommended level", 20), ("System check (auto)", 34), ("Why recommended", 34),
-         ("Submitted by", 18), ("Submitted date", 11), ("Manager decision", 11), ("Manager name", 18), ("Manager date", 11), ("Manager comments", 26),
-         ("HR decision", 11), ("HR name", 18), ("HR date", 11), ("HR comments", 26), ("Final decision", 11), ("Final approver", 18), ("Final date", 11),
-         ("Effective date", 11), ("Final comments", 26), ("Status (auto)", 22), ("Checks (auto)", 34)]
-for i, (h, w) in enumerate(pcols, start=1):
-    head(ws, 5, i, h, "404040" if h.endswith("(auto)") else NAVY)
-    ws.column_dimensions[L(i)].width = w
-ws.row_dimensions[5].height = 40
-sample_pr = [packer["id"], None, None, LEVELS[2]["name"], None, "Qualified in Packaging and Palletizing; covers both stations on Shift C. (Sample request)",
-             "Supervisor C (sample)", TODAY - timedelta(days=2)]
-for k in range(PR_N):
-    r = PR0 + k
-    for c in [1, 4] + list(range(6, 22)):
-        v = sample_pr[c - 1] if k == 0 and c <= len(sample_pr) else None
-        put(ws, (r, c), v, f(9), INPUT, L_AL if c in (6, 7, 10, 12, 14, 16, 18, 21) else C_AL, BOX, "dd-mmm-yy" if c in (8, 11, 15, 19, 20) else None)
-    m = f"MATCH(A{r},{EMP_IDS},0)"
-    put(ws, (r, 2), f'=IF(A{r}="","",IFERROR(INDEX({EMP_NAMES},{m}),"Unknown ID"))', f(9), GREY, L_AL, BOX)
-    put(ws, (r, 3), f'=IF(A{r}="","",IFERROR(INDEX({EMP}!$I${E0}:$I${E1},{m}),""))', f(9), GREY, L_AL, BOX)
-    put(ws, (r, 5),
-        f'=IF(OR(A{r}="",D{r}=""),"",IFERROR(IF(D{r}=INDEX({EMP}!$T${E0}:$T${E1},{m}),IF(INDEX({CA["FN_ready"]},{m}),"Meets documented requirements","NOT MET: "&INDEX({CA["FO_missing"]},{m})),"Not the next level – check manually"),"Unknown ID"))',
-        f(9), GREY, L_AL, BOX)
-    put(ws, (r, 22), f'=IF(A{r}="","",IF(OR(I{r}="Rejected",M{r}="Rejected",Q{r}="Rejected"),"Rejected",IF(Q{r}="Approved","Approved",IF(M{r}="Approved","Awaiting final approval",IF(I{r}="Approved","Awaiting HR","Awaiting manager")))))', f(9, True), GREY, C_AL, BOX)
-    checks = (f'=IF(A{r}="","",TRIM(IF(AND(M{r}<>"",I{r}<>"Approved"),"HR decided before manager approval. ","")&IF(AND(Q{r}<>"",M{r}<>"Approved"),"Final decided before HR approval. ","")'
-              f'&IF(OR(AND(I{r}="Rejected",L{r}=""),AND(M{r}="Rejected",P{r}=""),AND(Q{r}="Rejected",U{r}="")),"Rejection needs a reason. ","")'
-              f'&IF(OR(AND(J{r}<>"",OR(J{r}=G{r},J{r}=N{r},J{r}=R{r})),AND(N{r}<>"",OR(N{r}=G{r},N{r}=R{r})),AND(R{r}<>"",R{r}=G{r})),"Same person on two steps. ","")'
-              f'&IF(AND(Q{r}="Approved",T{r}=""),"Effective date missing. ","")&IF(AND(Q{r}="Approved",LEFT(E{r},5)<>"Meets"),"Approved although requirements are not met. ","")))')
-    put(ws, (r, 23), checks, f(9, color="C00000"), GREY, L_AL, BOX)
-dv(ws, f"={EMP_IDS}", f"A{PR0}:A{PR0 + PR_N - 1}")
-dv(ws, f"={LV_NAMES}", f"D{PR0}:D{PR0 + PR_N - 1}")
-for col in "IMQ":
-    dv(ws, f"={LISTS['F']}", f"{col}{PR0}:{col}{PR0 + PR_N - 1}")
-dv(ws, f"={LISTS['I']}", f"G{PR0}:G{PR0 + PR_N - 1}")
-st_r = f"V{PR0}:V{PR0 + PR_N - 1}"
-for txt, fc, tc in (("Approved", "1E63C4", "FFFFFF"), ("Rejected", BAD_F, BAD_T)):
-    ws.conditional_formatting.add(st_r, CellIsRule(operator="equal", formula=[f'"{txt}"'], fill=fill(fc), font=Font(name=FONT, bold=True, color=tc)))
-cf_fill(ws, st_r, f'LEFT(V{PR0},8)="Awaiting"', AMB_F, AMB_T)
-cf_fill(ws, f"E{PR0}:E{PR0 + PR_N - 1}", f'LEFT(E{PR0},7)="NOT MET"', BAD_F, BAD_T)
-cf_fill(ws, f"E{PR0}:E{PR0 + PR_N - 1}", f'LEFT(E{PR0},5)="Meets"', "DDEBF7", NAVY)
-ws.freeze_panes = "C6"
+def blockcol(b, dept_cell):
+    """Whole-column range of block b for the department named in dept_cell."""
+    a, z = L(BS[b]), L(BS[b] + ND - 1)
+    return f"INDEX({CALC}!${a}${E0}:${z}${E1},0,MATCH({dept_cell},{CALC}!${a}$3:${z}$3,0))"
 
-# ================================================================== Person Card
-ws = S["Person Card"]
-title(ws, "Person Card", "Pick a name to see every skill, what is required, training status and expiry. Use the filter on “Required” for a short list. Print this sheet for 1-to-1 reviews.", navcol="H")
-for col, w in zip("ABCDEFGHIJ", (2, 9, 20, 34, 9, 13, 22, 18, 12, 22)):
-    ws.column_dimensions[col].width = w
-ws.column_dimensions["M"].hidden = True
-put(ws, "B4", "Person ▸", f(12, True, NAVY), al=Alignment(horizontal="right", vertical="center"))
-merge(ws, "C4:D4", f'{multi["first"]} {multi["last"]}', font=f(13, True), fl=INPUT, al=L_AL, border=BOX)
-dv(ws, f"={EMP_NAMES}", "C4", "Pick a name from the Employees sheet", "Person")
-ws.row_dimensions[4].height = 26
-put(ws, "M1", f'=IFERROR(MATCH($C$4,{EMP_NAMES},0),"")')
-infos = [("C", "Employee ID", "A"), ("D", "Job title · Shift", None), ("E", "% Ready", "P"), ("F", "Gaps", "O"), ("G", "Career level", "I"), ("H", "Next level", "T"), ("I", "Areas qualified", "R")]
-for col, lab, src in infos:
-    put(ws, f"{col}6", lab, f(9, True, MUTED), fill("EEF3F8"))
-    put(ws, f"{col}7", f'=IF($M$1="","",INDEX({EMP}!${src}${E0}:${src}${E1},$M$1))' if src else
-        f'=IF($M$1="","",INDEX({EMP}!$F${E0}:$F${E1},$M$1)&" · Shift "&INDEX({EMP}!$D${E0}:$D${E1},$M$1))', f(12, True), fill("EEF3F8"), L_AL, None, "0%" if src == "P" else None)
-put(ws, "B8", f'=IF($M$1="","Pick a name in C4.","Promotion: "&INDEX({EMP}!$U${E0}:$U${E1},$M$1)&" – "&INDEX({EMP}!$V${E0}:$V${E1},$M$1))', f(10, True, NAVY))
-ws.row_dimensions[7].height = 26
-for i, h in enumerate(["Skill ID", "Department", "Competency", "Required", "Status", "Training log", "Trainer", "Expires", "Action"], start=2):
-    head(ws, 10, i, h)
-RB = f"{CALC}!${L(BSTART['R'])}${E0}:${L(BSTART['R'] + D_N - 1)}${E1}"
-RH = f"{CALC}!${L(BSTART['R'])}$3:${L(BSTART['R'] + D_N - 1)}$3"
-for k in range(SK_N):
-    r = 11 + k
-    put(ws, (r, 2), f'={SKN}!A{SK0 + k}&""', f(9, True), None, C_AL, BOX)
-    put(ws, (r, 3), f'={SKN}!B{SK0 + k}&""', f(9), None, L_AL, BOX)
-    put(ws, (r, 4), f'=IF({SKN}!C{SK0 + k}="","",IF({SKN}!D{SK0 + k}="Yes","◆ ","")&{SKN}!C{SK0 + k})', f(9), None, L_AL, BOX)
-    put(ws, (r, 5), f'=IF(OR($M$1="",B{r}=""),"",IF(IFERROR(INDEX({RB},$M$1,MATCH(C{r},{RH},0)),0)=1,"Yes",""))', f(9, True), None, C_AL, BOX)
-    put(ws, (r, 6), f'=IF(OR($M$1="",B{r}=""),"",IF(INDEX({MGRID},$M$1,{k + 1})="",IF(E{r}="Yes","NT (not assessed)","—"),INDEX({MGRID},$M$1,{k + 1})))', f(9, True), None, C_AL, BOX)
-    lk = f'MATCH(INDEX({EMP_IDS},$M$1)&"|"&B{r},{LG["U"]},0)'
-    put(ws, (r, 7), f'=IF(OR($M$1="",B{r}=""),"",IFERROR(INDEX({LG["S"]},{lk}),""))', f(9), None, L_AL, BOX)
-    put(ws, (r, 8), f'=IF(OR($M$1="",B{r}=""),"",IFERROR(INDEX({LOG}!$G${LOG0}:$G${LOG1},{lk})&"",""))', f(9), None, L_AL, BOX)
-    put(ws, (r, 9), f'=IF(OR($M$1="",B{r}=""),"",IFERROR(INDEX({LOG}!$R${LOG0}:$R${LOG1},{lk}),""))', f(9), None, C_AL, BOX, "dd-mmm-yy")
-    put(ws, (r, 10), f'=IF(OR($M$1="",B{r}=""),"",IF(G{r}="Expired","Requalify",IF(G{r}="Expiring soon","Plan requalification",IF(G{r}="Ready to verify","Verify now",IF(AND(F{r}="C",G{r}=""),"Add verification record",IF(AND(E{r}="Yes",F{r}<>"C"),IF(G{r}="","Assign training","Continue training"),""))))))', f(9, True, "C00000"), None, L_AL, BOX)
-fr = "F11:F150"
-for code, (fc, tc, _) in ST.items():
-    cf_fill(ws, fr, f'LEFT(F11,{len(code)})="{code}"' if code != "C" else 'F11="C"', fc, tc)
-cf_fill(ws, "B11:J150", '$E11=""', "FFFFFF", "A6A6A6", bold=False)
-ws.auto_filter.ref = "B10:J150"
-ws.freeze_panes = "A11"
+
+# ================================================================== SkillCalc (hidden)
+ws = S["SkillCalc"]
+for i, h in enumerate(["Skill ID", "Department", "Competency", "Competent", "Only person", "single key", "People who need it", "Nobody competent"], start=1):
+    put(ws, (5, i), h, f(9, True))
+for k, (sid, dept, name, crit) in enumerate(SKILLS):
+    r = SC0 + k
+    col = L(MC + k)
+    put(ws, (r, 1), sid)
+    put(ws, (r, 2), dept)
+    put(ws, (r, 3), name)
+    put(ws, (r, 4), f'=COUNTIF({MX}!{col}${E0}:{col}${E1},"C")')
+    put(ws, (r, 5), f'=IF(D{r}=1,INDEX({MX}!$B${E0}:$B${E1},MATCH("C",{MX}!{col}${E0}:{col}${E1},0)),"")')
+    put(ws, (r, 6), f'=IF(D{r}=1,1+(1000-ROW())/100000,0)')
+    put(ws, (r, 7), f'=SUMPRODUCT({blockcol("R", f"B{r}")}*({MX}!{col}${E0}:{col}${E1}<>"N/A"))')
+    put(ws, (r, 8), f'=IF(AND(D{r}=0,G{r}>0),1,0)')
+ws.sheet_state = "hidden"
+SK = lambda c: f"{SKC}!${c}${SC0}:${c}${SC1}"  # noqa: E731
 
 # ================================================================== Dashboard
 ws = S["Dashboard"]
@@ -735,18 +426,20 @@ for c in "CDEFGHIJKLMN":
 ws.column_dimensions["P"].hidden = True
 merge(ws, "B2:H2", "Production Skills Dashboard", font=f(20, True, NAVY), al=Alignment(vertical="center"))
 ws.row_dimensions[2].height = 34
-put(ws, "B3", "C.H. Guenther · Duncanville · updates automatically · sample data is fictional", f(10, color=MUTED, italic=True))
+put(ws, "B3", "C.H. Guenther · Duncanville · updates automatically from the Skills Matrix · sample people are fictional", f(10, color=MUTED, italic=True))
 put(ws, "J2", "Show shift ▸", f(11, True, NAVY), al=Alignment(horizontal="right", vertical="center"))
 merge(ws, "K2:L2", "All shifts", font=f(12, True), fl=INPUT, al=C_AL, border=BOX)
-dv(ws, f"={LISTS['G']}", "K2", "Pick a shift to filter the dashboard", "Shift", allow_blank=False)
+dv(ws, f"={LISTS['E']}", "K2", "Pick a shift to filter the dashboard", "Shift", allow_blank=False)
 link(ws, "M2", "◂ Start", "Start Here")
+SHF = ECOL("D")
 tiles = [
-    ("B", "C", "TOTAL EMPLOYEES", f'=COUNTIFS({EMP_IDS},"<>",{EMP}!$D${E0}:$D${E1},{CR})', "0", '="active roster"'),
-    ("D", "E", "FULLY QUALIFIED", f'=COUNTIFS({CA["FQ_full"]},TRUE,{CSHIFT},{CR})', "0", '="all job skills verified"'),
-    ("F", "G", "IN TRAINING", f'=COUNTIFS({EMP}!$Q${E0}:$Q${E1},">0",{EMP}!$D${E0}:$D${E1},{CR})', "0", '="have IT / TR skills"'),
-    ("H", "I", "NEED TRAINING", f'=COUNTIFS({EMP}!$O${E0}:$O${E1},">0",{EMP}!$D${E0}:$D${E1},{CR})', "0", '="have a required gap"'),
-    ("J", "K", "CROSS-TRAINED", f'=COUNTIFS({EMP}!$S${E0}:$S${E1},"Yes",{EMP}!$D${E0}:$D${E1},{CR})', "0", '="2+ production depts"'),
-    ("L", "M", "PROMOTION REVIEW", f'=COUNTIF({PRM}!$V${PR0}:$V${PR0 + PR_N - 1},"Awaiting*")', "0", '="requests in review"'),
+    ("B", "C", "EMPLOYEES", f'=COUNTIFS({EMP_IDS},"<>",{SHF},{CR})', "0", '="on the roster"'),
+    ("D", "E", "TEAM READINESS", f'=IFERROR(SUMIFS({ECOL("L")},{SHF},{CR})/SUMIFS({ECOL("K")},{SHF},{CR}),0)', "0%",
+     f'=SUMIFS({ECOL("L")},{SHF},{CR})&" of "&SUMIFS({ECOL("K")},{SHF},{CR})&" required skills"'),
+    ("F", "G", "FULLY QUALIFIED", f'=COUNTIFS({CA["full"]},TRUE,{CSHIFT},{CR})', "0", '="no skill gaps"'),
+    ("H", "I", "NEED TRAINING", f'=COUNTIFS({ECOL("M")},">0",{SHF},{CR})', "0", '="have a required gap"'),
+    ("J", "K", "IN TRAINING", f'=COUNTIFS({ECOL("O")},">0",{SHF},{CR})', "0", '="have IT / TR skills"'),
+    ("L", "M", "CROSS-TRAINED", f'=COUNTIFS({ECOL("Q")},"Yes",{SHF},{CR})', "0", '="2+ production depts"'),
 ]
 tf = fill("EEF3F8")
 for a, b, lab, fm, fmt, sub in tiles:
@@ -758,57 +451,57 @@ for a, b, lab, fm, fmt, sub in tiles:
     merge(ws, f"{a}8:{b}8", sub, font=f(9, color=MUTED), al=Alignment(horizontal="left", vertical="top", indent=1))
 for rr in (6, 7):
     ws.row_dimensions[rr].height = 24
-put(ws, "B10", "Needs attention", f(13, True, NAVY))
-att = [("Qualifications ready to verify", f'=COUNTIF({LG["S"]},"Ready to verify")'), ("Training overdue", f'=COUNTIF({LG["S"]},"Overdue")'),
-       ("Qualifications expiring in 30 days", f'=COUNTIF({LG["S"]},"Expiring soon")'), ("Qualifications expired", f'=COUNTIF({LG["S"]},"Expired")'),
-       ("Invalid log rows (missing practical / evidence / same verifier)", f'=COUNTIF({LG["S"]},"Invalid*")'),
-       ("“C” entered without a current verification record", f'=MAX(0,COUNTIF({MGRID},"C")-COUNTIF({LG["S"]},"Qualified")-COUNTIF({LG["S"]},"Expiring soon")-COUNTIF({LG["S"]},"Expired"))'),
-       ("Departments below a shift target", f'=COUNTIF({COV}!$K$6:$K${5 + NPROD},"Gap")'), ("Skills only one person can do", f'=COUNTIF({SKN}!$G${SK0}:$G${SK1},1)')]
-for i, (lab, fm) in enumerate(att):
-    r = 11 + i
-    merge(ws, f"B{r}:E{r}", lab, font=f(10), al=L_AL, border=BOX)
-    put(ws, f"F{r}", fm, f(11, True), None, C_AL, BOX)
-    cf_fill(ws, f"F{r}", f"F{r}>0", BAD_F, BAD_T)
-put(ws, "H10", "Coverage by department (selected shift)", f(13, True, NAVY))
-for c, h in zip("HIJK", ("Department", "", "Qualified", "Target")):
-    head(ws, 11, ws[c + "11"].column, h)
-ws.merge_cells("H11:I11")
-for i in range(NPROD):
-    r = 12 + i
-    cr_ = COV_ROWS[0] + i
-    ws.merge_cells(f"H{r}:I{r}")
-    put(ws, f"H{r}", f"={COV}!B{cr_}&\"\"", f(9), None, L_AL, BOX)
-    put(ws, f"J{r}", f'=IF(H{r}="","",{COV}!M{cr_})', f(9, True), None, C_AL, BOX)
-    put(ws, f"K{r}", f'=IF(H{r}="","",{COV}!N{cr_})', f(9), None, C_AL, BOX)
-    cf_fill(ws, f"J{r}", f"AND(ISNUMBER(K{r}),J{r}<K{r})", BAD_F, BAD_T)
-    cf_fill(ws, f"J{r}", f"AND(ISNUMBER(K{r}),J{r}>=K{r})", "DDEBF7", "1E63C4")
-last_cov = 11 + len([a for a in AREAS if a["kind"] == "PRODUCTION"])
-put(ws, "B21", "Who needs training most (selected shift)", f(13, True, NAVY))
+ws.conditional_formatting.add("D6", CellIsRule(operator="greaterThanOrEqual", formula=["0.95"], font=Font(name=FONT, size=28, bold=True, color=OK_T)))
+ws.conditional_formatting.add("D6", CellIsRule(operator="lessThan", formula=["0.8"], font=Font(name=FONT, size=28, bold=True, color="C00000")))
+put(ws, "B10", "Qualified people by department", f(13, True, NAVY))
+put(ws, "B11", "Qualified = every skill in the department is C (or N/A for that person)", f(9, italic=True, color=MUTED))
+for c, h in zip("BCDEFG", ("Department", "A", "B", "C", "Selected shift", "Assigned to dept")):
+    head(ws, 12, ws[c + "12"].column, h)
+NP = len(PROD_DEPTS)
+for i, dname in enumerate(PROD_DEPTS):
+    r = 13 + i
+    put(ws, f"B{r}", dname, f(10), None, L_AL, BOX)
+    for j, s in enumerate(SHIFTS):
+        put(ws, (r, 3 + j), f'=SUMPRODUCT(({CSHIFT}="{s}")*{blockcol("Q", f"$B{r}")})', f(10, True), None, C_AL, BOX)
+    put(ws, f"F{r}", f'=IF($K$2="All shifts",SUM(C{r}:E{r}),INDEX(C{r}:E{r},MATCH($K$2,$C$12:$E$12,0)))', f(10, True), GREY, C_AL, BOX)
+    put(ws, f"G{r}", f'=COUNTIFS({ECOL("E")},B{r},{SHF},{CR})', f(10), GREY, C_AL, BOX)
+    cf(ws, f"C{r}:F{r}", f"C{r}=0", BAD_F, BAD_T)
+last_dept = 12 + NP
+put(ws, (last_dept + 1, 2), "Columns A / B / C = shifts.", f(8, italic=True, color=MUTED))
+r0 = last_dept + 3
+put(ws, f"B{r0}", "Who needs training most (selected shift)", f(13, True, NAVY))
 for c, h in zip("BCDEF", ("Employee", "Gaps", "% Ready", "Job title", "Shift")):
-    head(ws, 22, ws[c + "22"].column, h)
+    head(ws, r0 + 1, ws[c + "1"].column, h)
 for k in range(1, 11):
-    r = 22 + k
-    put(ws, f"P{r}", f"=LARGE({CA['FP_key']},{k})")
-    m = f"MATCH($P{r},{CA['FP_key']},0)"
-    put(ws, f"B{r}", f'=IF($P{r}<=0,"",INDEX({EMP_NAMES},{m}))', f(10, True), None, L_AL, BOX)
-    put(ws, f"C{r}", f'=IF($P{r}<=0,"",INDEX({EMP}!$O${E0}:$O${E1},{m}))', f(10, True, "C00000"), None, C_AL, BOX)
-    put(ws, f"D{r}", f'=IF($P{r}<=0,"",INDEX({EMP}!$P${E0}:$P${E1},{m}))', f(10), None, C_AL, BOX, "0%")
-    put(ws, f"E{r}", f'=IF($P{r}<=0,"",INDEX({EMP}!$F${E0}:$F${E1},{m}))', f(9), None, L_AL, BOX)
-    put(ws, f"F{r}", f'=IF($P{r}<=0,"",INDEX({EMP}!$D${E0}:$D${E1},{m}))', f(9), None, C_AL, BOX)
-put(ws, "B34", "Status legend", f(13, True, NAVY))
-legend = [(ST["NT"], "NT", "Needs Training"), (ST["IT"], "IT", "In Training – supervised"), (ST["TR"], "TR", "Trained – awaiting verification"),
-          (ST["C"], "C", "Competent – verified, independent"), (ST["N/A"], "N/A", "Not applicable / not assessed"), ((EXP[0], EXP[1]), "C", "Expired – requalify (not counted)"),
-          ((UNVER[0], UNVER[1]), "C", "Competent entered but NO verification record"), (("F4B6B6", "C62828"), "", "Required for the job – not assessed")]
-for i, (cl, code, txt) in enumerate(legend):
-    r = 35 + i
-    put(ws, f"B{r}", code, f(10, True, cl[1]), fill(cl[0]), C_AL, BOX)
-    merge(ws, f"C{r}:F{r}", txt, font=f(9), al=L_AL)
+    r = r0 + 1 + k
+    put(ws, f"P{r}", f"=LARGE({CA['key']},{k})")
+    mm = f"MATCH($P{r},{CA['key']},0)"
+    put(ws, f"B{r}", f'=IF($P{r}<=0,"",INDEX({EMP_NAMES},{mm}))', f(10, True), None, L_AL, BOX)
+    put(ws, f"C{r}", f'=IF($P{r}<=0,"",INDEX({ECOL("M")},{mm}))', f(10, True, "C00000"), None, C_AL, BOX)
+    put(ws, f"D{r}", f'=IF($P{r}<=0,"",INDEX({ECOL("N")},{mm}))', f(10), None, C_AL, BOX, "0%")
+    put(ws, f"E{r}", f'=IF($P{r}<=0,"",INDEX({ECOL("F")},{mm}))', f(9), None, L_AL, BOX)
+    put(ws, f"F{r}", f'=IF($P{r}<=0,"",INDEX({ECOL("D")},{mm}))', f(9), None, C_AL, BOX)
+put(ws, f"B{r0 + 12}", f'=IF(P{r0 + 2}<=0,"Nobody on this shift has a required skill gap.","")', f(9, italic=True, color=MUTED))
+put(ws, "I10", "Watch list", f(13, True, NAVY))
+watch = [("Skills only one person can do", f'=COUNTIF({SK("D")},1)'), ("Needed skills nobody is Competent in", f'=SUM({SK("H")})'),
+         ("Cells marked NT (needs training)", f'=COUNTIF({MGRID},"NT")'), ("Cells in training (IT + TR)", f'=COUNTIF({MGRID},"IT")+COUNTIF({MGRID},"TR")')]
+for i, (lab, fm) in enumerate(watch):
+    r = 11 + i
+    merge(ws, f"I{r}:L{r}", lab, font=f(10), al=L_AL, border=BOX)
+    put(ws, f"M{r}", fm, f(11, True), None, C_AL, BOX)
+put(ws, "I16", "Status legend", f(13, True, NAVY))
+legend = [("NT", ST["NT"], "Needs Training"), ("IT", ST["IT"], "In Training – supervised"), ("TR", ST["TR"], "Trained – not yet signed off"),
+          ("C", ST["C"], "Competent – works independently"), ("N/A", ST["N/A"], "Not applicable to this person"), ("", REQ_BLANK, "Required for the job – not assessed")]
+for i, (code, cl, txt) in enumerate(legend):
+    r = 17 + i
+    put(ws, f"I{r}", code, f(10, True, cl[1]), fill(cl[0]), C_AL, BOX)
+    merge(ws, f"J{r}:M{r}", txt, font=f(9), al=L_AL)
 ch = BarChart()
 ch.type = "bar"
 ch.style = 10
-ch.title = "Qualified people vs target (selected shift)"
-ch.add_data(Reference(ws, min_col=10, max_col=11, min_row=11, max_row=last_cov), titles_from_data=True)
-ch.set_categories(Reference(ws, min_col=8, min_row=12, max_row=last_cov))
+ch.title = "Qualified vs assigned (selected shift)"
+ch.add_data(Reference(ws, min_col=6, max_col=7, min_row=12, max_row=last_dept), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=2, min_row=13, max_row=last_dept))
 ch.x_axis.scaling.orientation = "maxMin"
 ch.x_axis.delete = False
 ch.y_axis.delete = False
@@ -816,13 +509,13 @@ ch.y_axis.majorGridlines = None
 ch.series[0].graphicalProperties.solidFill = "1E63C4"
 ch.series[1].graphicalProperties.solidFill = "AFC1DC"
 ch.gapWidth = 50
-ch.width, ch.height = 15, 11
-ws.add_chart(ch, "H31")
+ch.width, ch.height = 15, 10.5
+ws.add_chart(ch, "I24")
 ws.freeze_panes = "A4"
 
 # ================================================================== CI Analytics
 ws = S["CI Analytics"]
-title(ws, "Continuous Improvement Analytics", "Counted from the matrix and the Training Log only. No productivity or cost savings are estimated – those need real before/after measurements.", navcol="H")
+title(ws, "Continuous Improvement Analytics", "All shifts. Counted from the Skills Matrix only – no productivity or cost savings are estimated.", navcol="H")
 ws.column_dimensions["A"].width = 2
 ws.column_dimensions["B"].width = 26
 for c in "CDEFGHIJKLMN":
@@ -830,65 +523,92 @@ for c in "CDEFGHIJKLMN":
 put(ws, "B4", "Cross-training", f(13, True, NAVY))
 for c, h in zip("BC", ("Production depts qualified", "Employees")):
     head(ws, 5, ws[c + "5"].column, h)
-for i, (lab, crit) in enumerate((("0", 0), ("1", 1), ("2", 2), ("3 or more", 3))):
+for i, (lab, crit) in enumerate((("0", "0"), ("1", "1"), ("2", "2"), ("3 or more", ">=3"))):
     r = 6 + i
     put(ws, f"B{r}", lab, f(10), None, C_AL, BOX)
-    fm = f'=COUNTIFS({CA["FD_prod"]},">=3",{EMP_IDS},"<>")' if crit == 3 else f'=COUNTIFS({CA["FD_prod"]},{crit},{EMP_IDS},"<>")'
-    put(ws, f"C{r}", fm, f(10, True), None, C_AL, BOX)
-put(ws, "B11", "Coverage and gaps by department (all shifts)", f(13, True, NAVY))
-for c, h in zip("BCDE", ("Department", "Assigned employees", "Qualified (any dept)", "Open required-skill gaps")):
-    head(ws, 12, ws[c + "12"].column, h)
-ws.row_dimensions[12].height = 32
-for i in range(NPROD):
-    r = 13 + i
-    cr_ = COV_ROWS[0] + i
-    put(ws, f"B{r}", f"={COV}!B{cr_}&\"\"", f(9), None, L_AL, BOX)
-    put(ws, f"C{r}", f'=IF(B{r}="","",COUNTIF({EMP}!$E${E0}:$E${E1},B{r}))', f(10), None, C_AL, BOX)
-    put(ws, f"D{r}", f'=IF(B{r}="","",{COV}!I{cr_})', f(10, True), None, C_AL, BOX)
-    rb = f"INDEX({RB},0,MATCH(B{r},{RH},0))"
-    pb = f"INDEX({CALC}!${L(BSTART['P'])}${E0}:${L(BSTART['P'] + D_N - 1)}${E1},0,MATCH(B{r},{CALC}!${L(BSTART['P'])}$3:${L(BSTART['P'] + D_N - 1)}$3,0))"
-    put(ws, f"E{r}", f'=IF(B{r}="","",SUMPRODUCT({rb})*INDEX({SKN}!$M${D0}:$M${D1},MATCH(B{r},{DEPT_NAMES},0))-SUM({pb}))', f(10), None, C_AL, BOX)
-ci_last = 12 + len([a for a in AREAS if a["kind"] == "PRODUCTION"])
-put(ws, "B32", "Qualifications verified per month (last 12 months)", f(13, True, NAVY))
-for c, h in zip("BCD", ("Month", "Verified", "Training started")):
-    head(ws, 33, ws[c + "33"].column, h)
-for i in range(12):
-    r = 34 + i
-    put(ws, f"B{r}", f"=EOMONTH(TODAY(),{i - 12})+1", f(10), None, C_AL, BOX, "mmm yy")
-    put(ws, f"C{r}", f'=COUNTIFS({LOG}!$P${LOG0}:$P${LOG1},">="&B{r},{LOG}!$P${LOG0}:$P${LOG1},"<="&EOMONTH(B{r},0))', f(10, True), None, C_AL, BOX)
-    put(ws, f"D{r}", f'=COUNTIFS({LOG}!$H${LOG0}:$H${LOG1},">="&B{r},{LOG}!$H${LOG0}:$H${LOG1},"<="&EOMONTH(B{r},0))', f(10), None, C_AL, BOX)
-put(ws, "H32", "Single-person dependencies (only one Competent person)", f(13, True, NAVY))
-for c, h in zip("HIJ", ("Competency", "Department", "Only person")):
-    head(ws, 33, ws[c + "33"].column, h)
-ws.column_dimensions["H"].width = 30
-ws.column_dimensions["J"].width = 22
+    put(ws, f"C{r}", f'=COUNTIFS({CA["prod"]},"{crit}",{EMP_IDS},"<>")' if crit.startswith(">") else f'=COUNTIFS({CA["prod"]},{crit},{EMP_IDS},"<>")', f(10, True), None, C_AL, BOX)
+put(ws, "B10", "Total", f(10, True), None, C_AL, BOX)
+put(ws, "C10", "=SUM(C6:C9)", f(10, True), GREY, C_AL, BOX)
+put(ws, "B12", "By department", f(13, True, NAVY))
+for c, h in zip("BCDEF", ("Department", "Assigned employees", "Qualified (any shift)", "Open required-skill gaps", "Skills only one person can do")):
+    head(ws, 13, ws[c + "13"].column, h)
+ws.row_dimensions[13].height = 32
+for i, dname in enumerate(DEPTS):
+    r = 14 + i
+    put(ws, f"B{r}", dname, f(10), None, L_AL, BOX)
+    put(ws, f"C{r}", f'=COUNTIF({ECOL("E")},B{r})', f(10), None, C_AL, BOX)
+    put(ws, f"D{r}", f'=SUM({blockcol("Q", f"$B{r}")})', f(10, True), None, C_AL, BOX)
+    tot = f"COUNTIF({MDEPT},$B{r})"
+    put(ws, f"E{r}", f'=SUMPRODUCT({blockcol("R", f"$B{r}")}*({tot}-{blockcol("N", f"$B{r}")}-{blockcol("C", f"$B{r}")}))', f(10), None, C_AL, BOX)
+    put(ws, f"F{r}", f'=COUNTIFS({SK("B")},B{r},{SK("D")},1)', f(10), None, C_AL, BOX)
+    cf(ws, f"E{r}", f"E{r}>0", "FFFFFF", "C00000")
+ci_last = 13 + ND
+put(ws, (ci_last + 1, 2), "Total", f(10, True), None, L_AL, BOX)
+for c in "CDEF":
+    put(ws, f"{c}{ci_last + 1}", f"=SUM({c}14:{c}{ci_last})", f(10, True), GREY, C_AL, BOX)
+r1 = ci_last + 4
+put(ws, f"B{r1}", "Single-person dependencies (only one Competent person)", f(13, True, NAVY))
+for c, h in zip("BCD", ("Competency", "Department", "Only person")):
+    head(ws, r1 + 1, ws[c + "1"].column, h)
+ws.column_dimensions["C"].width = 18
+ws.column_dimensions["D"].width = 22
 ws.column_dimensions["P"].hidden = True
 for k in range(1, 21):
-    r = 33 + k
-    put(ws, f"P{r}", f"=LARGE({SKN}!$I${SK0}:$I${SK1},{k})")
-    m = f"MATCH($P{r},{SKN}!$I${SK0}:$I${SK1},0)"
-    put(ws, f"H{r}", f'=IF($P{r}<=0,"",INDEX({SKC},{m}))', f(9), None, L_AL, BOX)
-    put(ws, f"I{r}", f'=IF($P{r}<=0,"",INDEX({SKB},{m}))', f(9), None, L_AL, BOX)
-    put(ws, f"J{r}", f'=IF($P{r}<=0,"",INDEX({SKN}!$H${SK0}:$H${SK1},{m}))', f(9), None, L_AL, BOX)
-put(ws, "B48", f'="Competencies with nobody Competent: "&COUNTIFS({SKN}!$G${SK0}:$G${SK1},0,{SKA},"<>")', f(10, True, "C00000"))
-put(ws, "B49", f'="First-time practical pass rate: "&IFERROR(TEXT(COUNTIF({LOG}!$K${LOG0}:$K${LOG1},"Pass")/COUNTA({LOG}!$K${LOG0}:$K${LOG1}),"0%"),"no evaluations yet")', f(10, True))
+    r = r1 + 1 + k
+    put(ws, f"P{r}", f"=LARGE({SK('F')},{k})")
+    mm = f"MATCH($P{r},{SK('F')},0)"
+    put(ws, f"B{r}", f'=IF($P{r}<=0,"",INDEX({SK("C")},{mm}))', f(9), None, L_AL, BOX)
+    put(ws, f"C{r}", f'=IF($P{r}<=0,"",INDEX({SK("B")},{mm}))', f(9), None, L_AL, BOX)
+    put(ws, f"D{r}", f'=IF($P{r}<=0,"",INDEX({SK("E")},{mm}))', f(9), None, L_AL, BOX)
+put(ws, f"B{r1 + 22}", f'="Showing "&MIN(20,COUNTIF({SK("D")},1))&" of "&COUNTIF({SK("D")},1)&" single-person skills."', f(9, italic=True, color=MUTED))
 c1 = BarChart(); c1.type = "col"; c1.style = 10; c1.title = "Employees by production departments qualified"
 c1.add_data(Reference(ws, min_col=3, min_row=5, max_row=9), titles_from_data=True); c1.set_categories(Reference(ws, min_col=2, min_row=6, max_row=9))
 c1.legend = None; c1.x_axis.delete = False; c1.y_axis.delete = False; c1.series[0].graphicalProperties.solidFill = "2E8B57"
 c1.dataLabels = DataLabelList(); c1.dataLabels.showVal = True; c1.dataLabels.showSerName = False; c1.dataLabels.showCatName = False; c1.dataLabels.showLegendKey = False
 c1.width, c1.height = 12, 6.5
-ws.add_chart(c1, "E4")
+ws.add_chart(c1, "E3")
 c2 = BarChart(); c2.type = "bar"; c2.style = 10; c2.title = "Assigned vs qualified by department"
-c2.add_data(Reference(ws, min_col=3, max_col=4, min_row=12, max_row=ci_last), titles_from_data=True); c2.set_categories(Reference(ws, min_col=2, min_row=13, max_row=ci_last))
+c2.add_data(Reference(ws, min_col=3, max_col=4, min_row=13, max_row=ci_last), titles_from_data=True); c2.set_categories(Reference(ws, min_col=2, min_row=14, max_row=ci_last))
 c2.x_axis.scaling.orientation = "maxMin"; c2.x_axis.delete = False; c2.y_axis.delete = False
 c2.series[0].graphicalProperties.solidFill = "AFC1DC"; c2.series[1].graphicalProperties.solidFill = "1E63C4"
-c2.width, c2.height = 15, 9
-ws.add_chart(c2, "G11")
-c3 = LineChart(); c3.title = "Qualifications verified per month"; c3.style = 12
-c3.add_data(Reference(ws, min_col=3, max_col=4, min_row=33, max_row=45), titles_from_data=True); c3.set_categories(Reference(ws, min_col=2, min_row=34, max_row=45))
-c3.x_axis.number_format = "mmm yy"; c3.x_axis.delete = False; c3.y_axis.delete = False
-c3.width, c3.height = 15, 7
-ws.add_chart(c3, "B51")
+c2.width, c2.height = 15, 10
+ws.add_chart(c2, "H12")
+
+# ================================================================== Person Card
+ws = S["Person Card"]
+title(ws, "Person Card", "Pick a name to see every skill, what the job requires and what to do next. Filter “Required” = Yes for a short list. Print this sheet for 1-to-1 reviews.", navcol="G")
+for col, w in zip("ABCDEFGH", (2, 9, 22, 38, 10, 16, 24, 4)):
+    ws.column_dimensions[col].width = w
+ws.column_dimensions["M"].hidden = True
+put(ws, "B4", "Person ▸", f(12, True, NAVY), al=Alignment(horizontal="right", vertical="center"))
+merge(ws, "C4:D4", f'{m["first"]} {m["last"]}', font=f(13, True), fl=INPUT, al=L_AL, border=BOX)
+dv(ws, f"={EMP_NAMES}", "C4", "Pick a name from the Employees sheet", "Person")
+ws.row_dimensions[4].height = 26
+put(ws, "M1", f'=IFERROR(MATCH($C$4,{EMP_NAMES},0),"")')
+for col, lab, src, fmt in (("C", "Employee ID", "A", None), ("D", "Job title · Shift", None, None), ("E", "% Ready", "N", "0%"), ("F", "Gaps", "M", None), ("G", "Depts qualified", "P", None)):
+    put(ws, f"{col}6", lab, f(9, True, MUTED), fill("EEF3F8"))
+    fm = (f'=IF($M$1="","",INDEX({ECOL(src)},$M$1))' if src else f'=IF($M$1="","",INDEX({ECOL("F")},$M$1)&" · Shift "&INDEX({ECOL("D")},$M$1))')
+    put(ws, f"{col}7", fm, f(12, True), fill("EEF3F8"), L_AL, None, fmt)
+ws.row_dimensions[7].height = 26
+put(ws, "B8", '=IF($M$1="","Pick a name in C4.",INDEX(' + ECOL("R") + ',$M$1))', f(10, True, NAVY))
+for i, h in enumerate(["Skill ID", "Department", "Competency", "Required", "Status", "Next step"], start=2):
+    head(ws, 10, i, h)
+RB_A, RB_Z = L(BS["R"]), L(BS["R"] + ND - 1)
+for k, (sid, dept, name, crit) in enumerate(SKILLS):
+    r = 11 + k
+    put(ws, (r, 2), sid, f(9, True), None, C_AL, BOX)
+    put(ws, (r, 3), dept, f(9), None, L_AL, BOX)
+    put(ws, (r, 4), ("◆ " if crit else "") + name, f(9), None, L_AL, BOX)
+    put(ws, (r, 5), f'=IF($M$1="","",IF(IFERROR(INDEX({CALC}!${RB_A}${E0}:${RB_Z}${E1},$M$1,MATCH(C{r},{CALC}!${RB_A}$3:${RB_Z}$3,0)),0)=1,"Yes",""))', f(9, True), None, C_AL, BOX)
+    put(ws, (r, 6), f'=IF($M$1="","",IF(INDEX({MGRID},$M$1,{k + 1})="",IF(E{r}="Yes","Not assessed","—"),INDEX({MGRID},$M$1,{k + 1})))', f(9, True), None, C_AL, BOX)
+    put(ws, (r, 7), f'=IF($M$1="","",IF(E{r}<>"Yes","",IF(OR(F{r}="C",F{r}="N/A"),"",IF(F{r}="TR","Sign off when independent",IF(F{r}="IT","Continue training","Start training")))))', f(9, True, "C00000"), None, L_AL, BOX)
+lastp = 10 + NS
+for code, (fc, tc, _) in ST.items():
+    cf(ws, f"F11:F{lastp}", f'F11="{code}"', fc, tc)
+cf(ws, f"F11:F{lastp}", 'F11="Not assessed"', REQ_BLANK[0], REQ_BLANK[1])
+cf(ws, f"B11:G{lastp}", '$E11=""', "FFFFFF", "A6A6A6", bold=False)
+ws.auto_filter.ref = f"B10:G{lastp}"
+ws.freeze_panes = "A11"
 
 # ================================================================== Start Here
 ws = S["Start Here"]
@@ -896,48 +616,50 @@ ws.sheet_view.showGridLines = False
 ws.column_dimensions["A"].width = 3
 for c, w in zip("BCDEFG", (30, 3, 30, 3, 30, 3)):
     ws.column_dimensions[c].width = w
-merge(ws, "B2:F2", "CHG Production Skills & Career Progression", font=f(22, True, NAVY), al=Alignment(vertical="center"))
+merge(ws, "B2:F2", "CHG Production Skills Matrix", font=f(22, True, NAVY), al=Alignment(vertical="center"))
 ws.row_dimensions[2].height = 38
-merge(ws, "B3:F3", "C.H. Guenther / Pioneer Frozen Foods · Duncanville · Excel edition. All people in this file are FICTIONAL samples (IDs start with DEMO-).",
+merge(ws, "B3:F3", "C.H. Guenther / Pioneer Frozen Foods · Duncanville. All people in this file are FICTIONAL samples (IDs start with DEMO-).",
       font=f(10, color=MUTED, italic=True), al=Alignment(wrap_text=True, vertical="top"))
 ws.row_dimensions[3].height = 28
 put(ws, "B5", "What do you want to do?  (click a box)", f(13, True, NAVY))
 btns = [("See how the plant is doing", "Dashboard", "1E63C4"), ("Update skill levels", "Skills Matrix", "2E8B57"), ("Add or edit people", "Employees", "14284B"),
-        ("Record training & verification", "Training Log", "C55A11"), ("Review one person", "Person Card", "7030A0"), ("Promotion recommendations", "Promotion Review", "404040"),
-        ("Check shift coverage", "Shift Coverage", "BF8F00"), ("CI analytics", "CI Analytics", "548235"), ("Departments & skills setup", "Departments & Skills", "7F7F7F"), ("HR pay grades (HR only)", "HR Pay Grades", "C00000")]
+        ("Review one person", "Person Card", "7030A0"), ("CI analytics", "CI Analytics", "548235"), ("What each job requires", "Job Requirements", "7F7F7F")]
 for i, (txt, tgt, col) in enumerate(btns):
     r = 7 + (i // 3) * 3
     cl = "BDF"[i % 3]
     ws.merge_cells(f"{cl}{r}:{cl}{r + 1}")
     link(ws, f"{cl}{r}", f"{txt}\n▸ {tgt}", tgt, "FFFFFF", col, 11)
-for r in range(7, 19):
+for r in range(7, 13):
     ws.row_dimensions[r].height = 22
-put(ws, "B20", "How it works", f(13, True, NAVY))
+put(ws, "B14", "How it works", f(13, True, NAVY))
 steps = [
-    ("1. People", "Add each person on Employees (ID, name, shift A/B/C, department, job title, supervisor, career level). Delete or overwrite the Sample rows."),
-    ("2. Skills", "On Skills Matrix pick NT / IT / TR / C / N/A. A red empty cell means the job requires that skill and it hasn't been assessed."),
-    ("3. Training", "On Training Log add one row per person per skill: trainer, dates, TWI step, practical result, evidence, verifier. Status calculates itself."),
-    ("4. Competent", "“C” only counts when the log shows: practical PASSED, operated independently, evidence for ◆ critical skills, and a verifier who is not the trainer. Otherwise the cell turns pale blue."),
-    ("5. Expiry", "Skills with a requalification interval expire automatically (dark red) and stop counting toward coverage."),
-    ("6. Promotion", "Employees and Person Card show the next level and what is missing. Supervisors add a row on Promotion Review; manager, HR and final approver fill their columns."),
+    ("1. People", "On Employees enter each person's ID, name, shift (A/B/C), department, job title and supervisor. Delete or overwrite the Sample rows."),
+    ("2. Skills", "On Skills Matrix pick NT / IT / TR / C / N/A in each cell. A light red empty cell means the job requires that skill and it hasn't been assessed."),
+    ("3. Results", "Employees, Dashboard, Person Card and CI Analytics update by themselves. Use the shift box on the Dashboard to filter."),
 ]
 for i, (a, b) in enumerate(steps):
-    r = 21 + i
+    r = 15 + i
     put(ws, f"B{r}", a, f(11, True), al=Alignment(vertical="top", indent=1))
     merge(ws, f"D{r}:F{r}", b, font=f(10), al=Alignment(wrap_text=True, vertical="top"))
-    ws.row_dimensions[r].height = 40
-put(ws, "B28", "Important", f(13, True, NAVY))
-notes = [
-    "Pay sheets (red tabs, HR Pay …) are in this file. Excel cannot hide them from anyone who opens it – encrypt the file (File ▸ Info ▸ Protect Workbook ▸ Encrypt with Password) and share it only with people allowed to see pay. If supervisors need the file, delete the HR tabs from their copy.",
-    "Excel cannot enforce who edits what or keep a tamper-proof history. Use folder permissions, turn on version history (SharePoint/OneDrive), and keep signed copies of verifications and promotion decisions.",
-    "Departments, checklists, job requirements, career levels, rules and targets are STARTING ASSUMPTIONS – confirm them with the area owners and HR.",
-    "Yellow cells = you type here. Grey cells = formulas, don't overwrite. Dates as dd-mmm-yy.",
-    "Proofing and Baking are left out (frozen operations only).",
+    ws.row_dimensions[r].height = 34
+put(ws, "B19", "How things are counted", f(13, True, NAVY))
+rules = [
+    "Skills required = every skill in the departments marked “Yes” for the person's job title (Job Requirements), minus skills marked N/A for that person.",
+    "Competent = cells marked C in those required skills.  Gaps = required − competent.  % Ready = competent ÷ required.",
+    "Qualified in a department = every skill in that department is C (or N/A), with at least one C. Cross-trained = qualified in 2 or more production departments.",
+    "Yellow cells = you type here. Grey cells = formulas – don't overwrite them.",
+    "Proofing and Baking are not included (frozen operations only). Departments, skills and job requirements are starting assumptions – confirm them with area owners.",
 ]
-for i, t in enumerate(notes):
-    r = 29 + i
-    merge(ws, f"B{r}:F{r}", "•  " + t, font=f(10), al=Alignment(wrap_text=True, vertical="top"))
+for i, t_ in enumerate(rules):
+    r = 20 + i
+    merge(ws, f"B{r}:F{r}", "•  " + t_, font=f(10), al=Alignment(wrap_text=True, vertical="top"))
     ws.row_dimensions[r].height = 30
+legend_r = 26
+put(ws, f"B{legend_r}", "Status colours", f(13, True, NAVY))
+for i, (code, (fc, tc, lab)) in enumerate(ST.items()):
+    r = legend_r + 1 + i
+    put(ws, f"B{r}", f"{code}  {lab}", f(11, True, tc), fill(fc), Alignment(horizontal="left", vertical="center", indent=1), BOX)
+put(ws, f"B{legend_r + 6}", "(empty)  Required, not assessed", f(11, True, REQ_BLANK[1]), fill(REQ_BLANK[0]), Alignment(horizontal="left", vertical="center", indent=1), BOX)
 
 # ================================================================== finishing
 for s in wb.worksheets:
@@ -948,54 +670,8 @@ for s in wb.worksheets:
 S["Person Card"].page_setup.orientation = "portrait"
 S["Skills Matrix"].print_title_rows = "3:5"
 S["Skills Matrix"].print_title_cols = "A:F"
-colors = {"Start Here": NAVY, "Dashboard": "1E63C4", "Skills Matrix": "2E8B57", "Employees": NAVY, "Training Log": "C55A11", "Person Card": "7030A0",
-          "Promotion Review": "404040", "Shift Coverage": "BF8F00", "CI Analytics": "548235", "Departments & Skills": "7F7F7F", "Job Requirements": "7F7F7F", "Career Levels": "7F7F7F"}
-for n, c in colors.items():
+for n, c in {"Start Here": NAVY, "Dashboard": "1E63C4", "Skills Matrix": "2E8B57", "Employees": NAVY, "Person Card": "7030A0", "CI Analytics": "548235", "Job Requirements": "7F7F7F"}.items():
     S[n].sheet_properties.tabColor = c
-# ================================================================== HR pay sheets (in the same workbook)
-hb = wb
-ws = hb.create_sheet("HR Pay Grades")
-ws.sheet_view.showGridLines = False
-put(ws, "A1", "CHG HR Compensation – CONFIDENTIAL", f(18, True, NAVY))
-put(ws, "A2", "HR Administrators and Plant Leadership only. Anyone who can open this workbook can see these sheets – encrypt the file (File ▸ Info ▸ Protect Workbook ▸ Encrypt with Password) "
-              "and store it where only approved people have access. No amounts are pre-filled – enter only APPROVED values.", f(10, italic=True, color="C00000"))
-link(ws, "H1", "◂ Start Here", "Start Here")
-for i, (h, w) in enumerate([("Code", 9), ("Pay grade name", 28), ("Career level", 24), ("Min hourly rate (USD)", 13), ("Max hourly rate (USD)", 13),
-                            ("Effective date", 12), ("End date", 12), ("Approval authority", 22), ("Policy reference / notes", 40), ("Check", 30)], start=1):
-    head(ws, 4, i, h)
-    ws.column_dimensions[L(i)].width = w
-ws.row_dimensions[4].height = 32
-for k in range(15):
-    r = 5 + k
-    lv = LEVELS[k] if k < len(LEVELS) else None
-    for c, v in enumerate([f"PG-{lv['rank']}" if lv else None, f"{lv['name']} (placeholder)" if lv else None, lv["name"] if lv else None, None, None, None, None, None,
-                           "Not configured – HR to enter approved range" if lv else None], start=1):
-        put(ws, (r, c), v, f(10), INPUT, L_AL if c in (2, 3, 8, 9) else C_AL, BOX, '"$"#,##0.00' if c in (4, 5) else "dd-mmm-yy" if c in (6, 7) else None)
-    put(ws, (r, 10), f'=TRIM(IF(AND(ISNUMBER(D{r}),ISNUMBER(E{r}),D{r}>E{r}),"Min is above max. ","")&IF(AND(OR(D{r}<>"",E{r}<>""),F{r}=""),"Effective date missing. ","")'
-                     f'&IF(AND(F{r}<>"",G{r}<>"",G{r}<F{r}),"End before start. ",""))', f(9, color="C00000"), GREY, L_AL, BOX)
-ws2 = hb.create_sheet("HR Skill Premiums")
-ws2.sheet_view.showGridLines = False
-put(ws2, "A1", "Skill Premiums – CONFIDENTIAL", f(18, True, NAVY))
-put(ws2, "A2", "Optional premiums for approved qualifications. Enter only approved amounts.", f(10, italic=True, color="C00000"))
-for i, (h, w) in enumerate([("Premium name", 28), ("Department (optional)", 22), ("Amount (USD)", 12), ("Unit", 12), ("Effective date", 12), ("End date", 12),
-                            ("Approval authority", 22), ("Policy reference / notes", 40)], start=1):
-    head(ws2, 4, i, h)
-    ws2.column_dimensions[L(i)].width = w
-for k in range(20):
-    for c in range(1, 9):
-        put(ws2, (5 + k, c), "per hour" if c == 4 and k == 0 else None, f(10), INPUT, None, BOX, '"$"#,##0.00' if c == 3 else "dd-mmm-yy" if c in (5, 6) else None)
-ws3 = hb.create_sheet("HR Pay Change Log")
-put(ws3, "A1", "Change log – record every change (who, when, what, approved by)", f(14, True, NAVY))
-for i, (h, w) in enumerate([("Date", 12), ("Changed by", 22), ("What changed", 50), ("Old value", 18), ("New value", 18), ("Approved by", 22)], start=1):
-    head(ws3, 3, i, h)
-    ws3.column_dimensions[L(i)].width = w
-for k in range(100):
-    for c in range(1, 7):
-        put(ws3, (4 + k, c), None, f(10), INPUT, None, BOX, "dd-mmm-yy" if c == 1 else None)
-for n, c in (("HR Pay Grades", "C00000"), ("HR Skill Premiums", "C00000"), ("HR Pay Change Log", "C00000")):
-    wb[n].sheet_properties.tabColor = c
-wb.move_sheet("Lists", offset=len(wb.sheetnames))
-wb.move_sheet("Calc", offset=len(wb.sheetnames))
 wb.active = 0
 wb.save(OUT)
-print(f"Saved {OUT.name} ({len(SKILLS)} skills, {len(AREAS)} departments, {len(people)} sample people, {len(log_rows)} log rows)")
+print(f"Saved {OUT.name} ({NS} skills, {ND} departments, {len(people)} sample people)")
