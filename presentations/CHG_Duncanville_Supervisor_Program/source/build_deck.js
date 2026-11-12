@@ -379,7 +379,7 @@ Ask the room: is there any row where you think the A is in the wrong place? Now'
     T(s, stages[i][2], { x: x + 0.25, y: y + 1.05, w: 3.4, h: 0.9, fontSize: 14, color: WHITE });
     T(s, stages[i][3], { x, y: base + 0.1, w: 3.85, h: 0.3, fontSize: 12, italic: true, color: GRAY, align: "center" });
   }
-  s.addShape(pres.shapes.LINE, { x: 0.9, y: 3.85, w: 3.0, h: -1.1, line: { color: GREEN, width: 2.5, dashType: "dash", endArrowType: "triangle" } });
+  s.addShape(pres.shapes.LINE, { x: 0.9, y: 2.75, w: 3.0, h: 1.1, flipV: true, line: { color: GREEN, width: 2.5, dashType: "dash", endArrowType: "triangle" } });
   T(s, "Scope, skills and value grow with every completed project", { x: 0.6, y: 1.75, w: 4.0, h: 0.6, fontSize: 14, bold: true, color: GREEN });
   s.addNotes(`(About 2 minutes.)
 
@@ -459,7 +459,7 @@ Ask the room: which changeover on your shift drives you the craziest?`);
   card(s, bx, by, bw, bh, { fill: LIGHT, name: "Before concept" });
   T(s, "BEFORE  ·  concept", { x: bx + 0.2, y: by + 0.12, w: 3, h: 0.3, fontSize: 12, bold: true, color: GRAY, charSpacing: 1 });
   const junk = [[0.3, 0.6, 1.1, 0.25, 20], [1.3, 0.75, 0.8, 0.3, -15], [2.3, 0.6, 1.2, 0.22, 35], [0.5, 1.3, 0.6, 0.6, 10], [1.4, 1.5, 1.3, 0.2, -30], [2.8, 1.3, 0.6, 0.45, 5], [0.4, 2.15, 1.4, 0.24, -8], [2.1, 2.05, 0.9, 0.35, 25], [3.1, 2.15, 0.45, 0.45, 0]];
-  junk.forEach(([x, y, w, h, r], k) => s.addShape(k % 3 === 0 ? pres.shapes.OVAL : pres.shapes.ROUNDED_RECTANGLE, { x: bx + x, y: by + y - 0.1, w, h, rotate: r, rectRadius: 0.05, fill: { color: k % 2 ? GRAY : STEEL }, line: { type: "none" } }));
+  junk.forEach(([x, y, w, h, r], k) => s.addShape(k % 3 === 0 ? pres.shapes.OVAL : pres.shapes.ROUNDED_RECTANGLE, { x: bx + x, y: by + y - 0.1, w, h, rotate: (r + 360) % 360, rectRadius: 0.05, fill: { color: k % 2 ? GRAY : STEEL }, line: { type: "none" } }));
   T(s, "Time lost searching", { x: bx + 0.2, y: by + 2.7, w: 3.5, h: 0.3, fontSize: 12, italic: true, color: GRAY });
   const ax = 4.75;
   card(s, ax, by, bw, bh, { fill: LIGHT, name: "After concept" });
