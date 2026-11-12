@@ -507,7 +507,7 @@ Ask the room: where on your line do people lose the most time searching for some
     await iconCircle(s, loop[i][0], nx - 0.4, ny - 0.4, 0.8, i === 4 ? GREEN : i % 2 ? MID : NAVY);
     const right = Math.cos(a) > 0.2, left = Math.cos(a) < -0.2;
     const lx = i === 0 ? nx + 0.5 : right ? nx + 0.48 : left ? nx - 2.08 : nx - 0.8;
-    T(s, [{ text: loop[i][1], options: { bold: true, color: NAVY, fontSize: 15, breakLine: true } }, { text: loop[i][2], options: { fontSize: 11, color: STEEL } }], { x: lx, y: ny - 0.32, w: 1.6, h: 0.64, valign: "middle", align: left ? "right" : "left" });
+    T(s, [{ text: loop[i][1], options: { bold: true, color: NAVY, fontSize: 15, breakLine: true } }, { text: loop[i][2], options: { fontSize: 11, color: STEEL } }], { x: left ? 0.3 : lx, y: ny - 0.32, w: left ? nx - 0.78 : 1.6, h: 0.64, valign: "middle", align: left ? "right" : "left" });
   }
   card(s, 6.75, 1.7, 5.95, 3.55, { fill: LIGHT, name: "Supervisor engagement standard" });
   T(s, "Supervisor engagement standard", { x: 7.05, y: 1.85, w: 4.0, h: 0.4, fontSize: 17, bold: true, color: NAVY });
