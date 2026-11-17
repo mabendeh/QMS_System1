@@ -6,7 +6,10 @@ const sharp = require("sharp");
 const fa = require("react-icons/fa");
 const { applyTheme } = require(process.env.SKILL + "/scripts/apply_theme.js");
 
-const OUT = process.argv[2] || "Gemini_AM_VO_Supervisor_Program.pptx";
+const MODE = (process.env.MODE || "AM").toUpperCase();
+const AM = MODE === "AM", VO = MODE === "VO";
+const OUT = process.argv[2] || (AM ? "Gemini_AM_Supervisor_Program.pptx" : "Gemini_VO_Supervisor_Program.pptx");
+const PILLAR = AM ? "Autonomous Maintenance (AM)" : "Value Optimization (VO)";
 
 const THEME = {
   name: "Gemini Industrial",
@@ -23,8 +26,8 @@ const HEX = { navy: "0B1F3A", teal: "0E9C9C", amber: "E9A23B", coral: "D9534F", 
 
 const pres = new pptxgen();
 pres.layout = "LAYOUT_WIDE";
-pres.title = "From Supervisors to Equipment Owners — Gemini Pilot";
-pres.subject = "Autonomous Maintenance + Value Optimization deployment";
+pres.title = "From Supervisors to Equipment Owners — Gemini Pilot — " + PILLAR;
+pres.subject = PILLAR + " deployment";
 pres.author = "Continuous Improvement — Duncanville";
 pres.company = "C.H. Guenther &amp; Son";
 pres.theme = { headFontFace: THEME.headFontFace, bodyFontFace: THEME.bodyFontFace };
@@ -100,23 +103,24 @@ function bullets(items, o = {}) {
 }
 // slide factories
 let curSection = "";
-function section(t) { curSection = t; pres.addSection({ title: t }); }
+function section(t) { if (t === curSection) return; curSection = t; pres.addSection({ title: t }); }
 function content(kicker, title) {
   const s = pres.addSlide({ masterName: "CONTENT", sectionTitle: curSection });
-  s.addText(kicker, { placeholder: "kicker" });
+  s.addText(kicker.replace(/^PART \d+ · /, ""), { placeholder: "kicker" });
   s.addText(title, { placeholder: "title" });
   return s;
 }
 function dark(kicker, title) {
   const s = pres.addSlide({ masterName: "EXERCISE", sectionTitle: curSection });
-  s.addText(kicker, { placeholder: "kicker" });
+  s.addText(kicker.replace(/^PART \d+ · /, ""), { placeholder: "kicker" });
   s.addText(title, { placeholder: "title" });
   return s;
 }
 function notes(s, n) { s.addNotes(n.trim().replace(/^ +/gm, "")); }
 
 // ---------- layouts ----------
-const FOOT = "C.H. Guenther & Son  |  Duncanville, Texas  |  Gemini Pilot — Autonomous Maintenance + Value Optimization";
+const FOOT = "C.H. Guenther & Son  |  Duncanville, Texas  |  Gemini Pilot — " + PILLAR;
+const hdr = (t) => ({ text: t, options: { bold: true, color: K.white, fill: { color: K.navy }, fontSize: 13 } });
 pres.defineSlideMaster({
   title: "TITLE", background: { color: K.navy },
   objects: [
@@ -150,14 +154,16 @@ pres.defineSlideMaster({
 });
 
 async function main() {
+  let s;
   for (const n of ICONS) for (const h of [HEX.white, HEX.navy, HEX.teal, HEX.coral, HEX.amber, HEX.blue, HEX.green, HEX.slate]) IC[n + h] = await icon(n, h);
 
+  if (true) {
   // ======================= 1. TITLE =======================
   section("Kickoff");
-  let s = pres.addSlide({ masterName: "TITLE", sectionTitle: curSection });
-  txt(s, "SUPERVISOR PRODUCTIVITY PROGRAM  ·  GEMINI PILOT", { x: 0.7, y: 1.05, w: 7.6, h: 0.35, fontSize: 13, bold: true, color: K.amber, charSpacing: 3, margin: 0 });
+  s = pres.addSlide({ masterName: "TITLE", sectionTitle: curSection });
+  txt(s, "GEMINI PILOT  ·  " + (AM ? "AUTONOMOUS MAINTENANCE (AM) PILLAR" : "VALUE OPTIMIZATION (VO) PILLAR"), { x: 0.7, y: 1.05, w: 7.6, h: 0.35, fontSize: 13, bold: true, color: K.amber, charSpacing: 3, margin: 0 });
   s.addText("FROM SUPERVISORS TO EQUIPMENT OWNERS", { placeholder: "title" });
-  txt(s, "Building High-Performance Teams Through Autonomous Maintenance, Value Optimization, and Continuous Improvement", { x: 0.7, y: 3.85, w: 7.4, h: 1.0, fontSize: 18, color: K.light, margin: 0 });
+  txt(s, AM ? "Building High-Performance Teams Through Autonomous Maintenance and Continuous Improvement" : "Building High-Performance Teams Through Value Optimization and Continuous Improvement", { x: 0.7, y: 3.85, w: 7.4, h: 1.0, fontSize: 18, color: K.light, margin: 0 });
   txt(s, [
     { text: "C.H. Guenther & Son — Duncanville, Texas", options: { bold: true, color: K.white, breakLine: true } },
     { text: "Pilot area: Gemini Equipment — Three Machines", options: { color: K.teal } },
@@ -167,16 +173,18 @@ async function main() {
     box(s, 8.9, y, 3.75, 1.1, { fill: K.white, tr: 90 });
     iconCircle(s, "FaIndustry", 9.1, y + 0.2, 0.7, K.teal);
     txt(s, "GEMINI " + (i + 1), { x: 10.0, y: y + 0.17, w: 2.5, h: 0.4, fontSize: 20, bold: true, color: K.white, margin: 0 });
-    txt(s, "Cell " + (i + 1) + "  ·  AM + VO ownership", { x: 10.0, y: y + 0.58, w: 2.6, h: 0.35, fontSize: 13, color: K.light, margin: 0 });
+    txt(s, "Cell " + (i + 1) + (AM ? "  ·  AM ownership" : "  ·  VO ownership"), { x: 10.0, y: y + 0.58, w: 2.6, h: 0.35, fontSize: 13, color: K.light, margin: 0 });
   }
   box(s, 8.9, 5.3, 3.75, 0.95, { fill: K.navy, line: K.light, dash: "dash", lw: 1 });
   txt(s, "Brand logo area — insert approved C.H. Guenther / Future Foods artwork", { x: 9.0, y: 5.35, w: 3.55, h: 0.85, fontSize: 11, color: K.light, align: "center", valign: "middle" });
   notes(s, `PURPOSE: Open the official launch of the Supervisor Productivity and Equipment Ownership Program for the three Gemini machines.
   TIMING: 2 minutes.
   SAY: "Today is not a training class on another tool. It is the start of how we will run these three machines from now on. Supervisors will become equipment owners — leading people, standards and measurable results."
-  SET THE FRAME: Three machines, three cross-functional cells, one common method: four Autonomous Maintenance (AM) tools plus the Value Optimization (VO) pillar.
+  ${AM ? "SET THE FRAME: Three machines, three cross-functional cells, one common method: the four Autonomous Maintenance (AM) tools — Safety Map, CILT, Centerlining and Defect Handling. This deck covers the AM pillar only; Value Optimization (VO) is delivered in its companion deck." : "SET THE FRAME: Three machines, three cross-functional cells, one common method: the six Value Optimization (VO) steps — baseline, losses, prioritize, projects, validate savings, sustain. This deck covers the VO pillar only; Autonomous Maintenance (AM) is delivered in its companion deck."}
   FACILITATOR NOTE: Replace the logo placeholder with approved C.H. Guenther / Future Foods brand artwork before delivery. No brand artwork or Gemini photos were supplied when this deck was built; all machine visuals are illustrative until real photos are added.`);
 
+  }
+  if (true) {
   // ======================= 2. VISION =======================
   s = content("PART 1 · PROGRAM VISION", "Our vision: supervisors who lead people, equipment and results");
   box(s, 0.6, 1.5, 6.0, 5.3, { fill: K.navy });
@@ -196,7 +204,7 @@ async function main() {
     ["FaCogs", "Equipment reliability", "Basic conditions restored and maintained"],
     ["FaClipboardCheck", "Consistent standards", "The same right way, on every shift"],
     ["FaSearch", "Root-cause problem-solving", "Fix the system, not the symptom"],
-    ["FaChartLine", "Productivity & savings", "Measured, Finance-validated, sustained"],
+    AM ? ["FaChartLine", "Measurable results", "Fewer defects, stops and adjustments — tracked weekly"] : ["FaChartLine", "Productivity & savings", "Measured, Finance-validated, sustained"],
   ];
   vis.forEach(([ic, h, d], i) => {
     const y = 1.5 + i * 0.76;
@@ -208,16 +216,23 @@ async function main() {
   TIMING: 3 minutes.
   SAY: Read the core message aloud. "We are not introducing another checklist. We are building a culture where every team understands its equipment, recognizes abnormalities, and takes ownership of improvement."
   KEY POINT: Supervisors already manage production. This program adds four capabilities: coaching teams, understanding the equipment, preventing recurring losses, and leading measurable improvement.
-  WALK THE RIGHT-HAND LIST: Safety and food quality come first and are never traded for output. Reliability and standards are the foundation. Root-cause thinking, productivity and Finance-validated savings are how we measure whether it is working.
+  WALK THE RIGHT-HAND LIST: Safety and food quality come first and are never traded for output. Reliability and standards are the foundation. ${AM ? "Root-cause thinking and measurable results show whether it is working." : "Root-cause thinking, productivity and Finance-validated savings are how we measure whether it is working."}
   ASK: "What would be different on your shift if every operator truly owned their machine?" Capture 3–4 answers on a flip chart; refer back to them in the closing.`);
 
+  }
+  if (true) {
   // ======================= 3. PROGRAM MAP =======================
-  s = content("PROGRAM ROADMAP", "The program at a glance: learn, own, improve, lead");
-  const phases = [
-    ["FaBrain", "LEARN", K.blue, ["How the brain learns & why problems return", "Root-cause thinking beyond 'operator error'"], "Parts 2–3"],
-    ["FaUsers", "OWN", K.teal, ["Three cross-functional Gemini cells", "AM: Safety Map, CILT, Centerlining, Defect Handling", "PM + Quality integration"], "Parts 4–6"],
-    ["FaChartLine", "IMPROVE", K.amber, ["VO: baseline → losses → prioritize → projects → validate savings → sustain"], "Part 7"],
-    ["FaFlag", "LEAD & SUSTAIN", K.navy, ["Roles & RACI", "90-day roadmap", "Daily huddles", "WOr leadership reviews", "AM + VO KPI dashboard"], "Parts 8–12"],
+  s = content("PROGRAM ROADMAP", AM ? "The AM program at a glance: learn, own, integrate, lead" : "The VO program at a glance: learn, measure, improve, lead");
+  const phases = AM ? [
+    ["FaBrain", "LEARN", K.blue, ["How the brain learns & why problems return", "Root-cause thinking beyond 'operator error'"], "Foundation"],
+    ["FaUsers", "OWN", K.teal, ["Three cross-functional Gemini cells", "AM tools: Safety Map, CILT, Centerlining, Defect Handling"], "AM tools"],
+    ["FaHandshake", "INTEGRATE", K.amber, ["AM + Planned Maintenance + Quality", "Shared action & escalation process"], "PM & Quality"],
+    ["FaFlag", "LEAD & SUSTAIN", K.navy, ["Roles & RACI", "90-day AM roadmap", "Daily huddles & coaching", "WOr reviews", "AM KPI dashboard"], "Leadership"],
+  ] : [
+    ["FaSearch", "LEARN", K.blue, ["Root-cause thinking beyond 'operator error'", "How VO differs from AM"], "Foundation"],
+    ["FaDatabase", "MEASURE", K.teal, ["Step 1: Baseline (4–8 weeks)", "Step 2: Six Big Losses & Pareto"], "VO steps 1–2"],
+    ["FaChartLine", "IMPROVE", K.amber, ["Step 3: Prioritize", "Step 4: Projects", "Step 5: Validate savings with Finance"], "VO steps 3–5"],
+    ["FaFlag", "LEAD & SUSTAIN", K.navy, ["Step 6: Sustain & expand", "Roles & RACI", "90-day VO roadmap", "WOr reviews", "VO KPI dashboard"], "Leadership"],
   ];
   phases.forEach(([ic, name, col, items, part], i) => {
     const x = 0.6 + i * 3.1;
@@ -229,20 +244,34 @@ async function main() {
     if (i < 3) arrow(s, x + 2.88, 3.6, x + 3.08, 3.6, K.slate, 2);
   });
   box(s, 0.6, 6.0, 12.1, 0.8, { fill: K.teal, tr: 85 });
-  txt(s, [
-    { text: "Two pillars, two jobs:  ", options: { bold: true, color: K.navy } },
-    { text: "AM establishes and keeps basic equipment conditions.  ", options: { color: K.ink } },
-    { text: "VO finds, sizes, prioritizes and validates the losses.", options: { color: K.ink } },
-  ], { x: 0.85, y: 6.0, w: 11.7, h: 0.8, fontSize: 15, valign: "middle" });
-  notes(s, `PURPOSE: Give the audience the map of the whole program before diving in.
+  txt(s, AM ? [
+    { text: "This deck: ", options: { bold: true, color: K.navy } },
+    { text: "Autonomous Maintenance — establish and keep basic equipment conditions.  " },
+    { text: "Companion deck: ", options: { bold: true, color: K.navy } },
+    { text: "Value Optimization — find, size, prioritize and validate losses." },
+  ] : [
+    { text: "This deck: ", options: { bold: true, color: K.navy } },
+    { text: "Value Optimization — find, size, prioritize and validate losses.  " },
+    { text: "Companion deck: ", options: { bold: true, color: K.navy } },
+    { text: "Autonomous Maintenance — establish and keep basic conditions." },
+  ], { x: 0.85, y: 6.0, w: 11.7, h: 0.8, fontSize: 14, valign: "middle", color: K.ink });
+  notes(s, AM ? `PURPOSE: Give the audience the map of the AM deck before diving in.
   TIMING: 2 minutes.
-  SAY: "We start with how people learn and why problems come back. Then we set up ownership — three cells and four AM tools. Then we improve with Value Optimization. Finally we lead and sustain it with clear roles, a 90-day plan, daily huddles, leadership reviews and a dashboard."
+  SAY: "We start with how people learn and why problems come back, and how to find real root causes. Then we set up ownership — three cells and four AM tools. We integrate AM with Planned Maintenance and Quality. Finally we lead and sustain it with clear roles, a 90-day plan, daily huddles, leadership reviews and a dashboard."
   SUGGESTED SESSION PLAN (adjust to your schedule):
-  • Leadership kickoff (90 min): slides 1–4, 13–15, 31–32, 38–43, 45–50.
-  • Supervisor practical training, Day 1 (4 hrs): neuroscience & root cause (slides 4–12), AM tools (15–30).
-  • Supervisor practical training, Day 2 (3 hrs): VO (31–37), daily management & coaching (42–44), WOr & KPIs (45–48).
-  KEY DISTINCTION to plant early: AM and VO are different pillars with different jobs. They are not interchangeable.`);
+  • Leadership kickoff (60 min): opening, three cells, what AM is, roles, roadmap, dashboard and closing.
+  • Supervisor practical training, Day 1 (4 hrs): neuroscience, root cause, Safety Map and CILT.
+  • Supervisor practical training, Day 2 (3 hrs): Centerlining, Defect Handling, PM & Quality integration, daily huddles and coaching.
+  COMPANION DECK: Value Optimization (VO) — baseline, losses, prioritization, projects and Finance-validated savings — is delivered separately. AM and VO are different pillars with different jobs.` : `PURPOSE: Give the audience the map of the VO deck before diving in.
+  TIMING: 2 minutes.
+  SAY: "We start with root-cause thinking and how VO differs from AM. Then we measure: a baseline for each Gemini and a clear view of the biggest losses. We improve: prioritize, run projects, and validate savings with Finance. Finally we sustain and lead it with clear roles, a 90-day plan, leadership reviews and a dashboard."
+  SUGGESTED SESSION PLAN (adjust to your schedule):
+  • Leadership kickoff (45 min): opening, cells, AM vs VO, the six VO steps, roles, roadmap, dashboard and closing.
+  • Supervisor practical training (3 hrs): root cause, baseline and losses, prioritization, projects, the savings-validation exercise, WOr template.
+  COMPANION DECK: Autonomous Maintenance (AM) — Safety Map, CILT, Centerlining and Defect Handling — is delivered separately. AM and VO are different pillars with different jobs.`);
 
+  }
+  if (AM) {
   // ======================= 4. OPENER =======================
   section("Neuroscience & Leadership");
   s = content("PART 2 · NEUROSCIENCE & LEADERSHIP — DISCUSSION OPENER", "Why does the problem come back two weeks later?");
@@ -272,6 +301,8 @@ async function main() {
   ABOUT THE CHART: It is conceptual, drawn to show the general shape described in forgetting-curve research dating back to Hermann Ebbinghaus (1885). It is not measured plant data. Do not quote percentages from it.
   TRANSITION: "To fix this, we need to understand a little about how the brain learns."`);
 
+  }
+  if (AM) {
   // ======================= 5. HOW BRAIN LEARNS =======================
   s = content("PART 2 · HOW THE BRAIN LEARNS", "Learning is a process — not a single event");
   const flow = [
@@ -309,6 +340,8 @@ async function main() {
   SCIENTIFIC ACCURACY: Keep claims at this level. Avoid "we only use 10% of our brain" or "left-brain/right-brain learners" — these are myths.
   ASK: "How many new things did we ask an operator to remember at the last training? How many could they recall a week later?"`);
 
+  }
+  if (AM) {
   // ======================= 6. MODES + PLASTICITY =======================
   s = content("PART 2 · ATTENTION, HABITS & NEUROPLASTICITY", "Same brain, two modes — and connections that grow with practice");
   txt(s, "FROM EFFORTFUL TO AUTOMATIC", { x: 0.6, y: 1.5, w: 6, h: 0.3, fontSize: 11, bold: true, color: K.teal, charSpacing: 2, margin: 0 });
@@ -350,6 +383,8 @@ async function main() {
   RIGHT SIDE (diagram is schematic, not to scale): A synapse is the junction where one neuron signals another. With repeated, coordinated activity, synapses can strengthen — long-term potentiation (LTP) is one well-studied mechanism. Unused connections can weaken or be pruned.
   ASK: "What workaround on the Gemini has become automatic for some operators?"`);
 
+  }
+  if (AM) {
   // ======================= 7. FORGET / STICK =======================
   s = content("PART 2 · RETENTION", "Why people forget — and what makes standards stick");
   box(s, 0.6, 1.5, 4.6, 5.3, { fill: K.light });
@@ -382,6 +417,8 @@ async function main() {
   KEY LINE: "Every AM tool in this program is also a learning tool."
   ASK: "Which of these five do we do well today? Which one is missing on the Gemini?"`);
 
+  }
+  if (AM) {
   // ======================= 8. VIDEOS =======================
   s = content("PART 2 · RECOMMENDED VIDEOS", "Two short videos to bring the science to life");
   const vids = [
@@ -409,6 +446,8 @@ async function main() {
   CAUTION TO STATE OUT LOUD: These videos explain mechanisms. They do not prove how a specific workplace habit forms. Avoid saying "this video shows your operators' habits growing." Say instead: "This is one of the mechanisms scientists think supports learning — practice is how we put it to work."
   DISCUSSION QUESTION: "If practice changes the brain, what are our operators practicing every day on the Gemini right now?"`);
 
+  }
+  if (AM) {
   // ======================= 9. EXERCISE REPETITION =======================
   s = dark("INTERACTIVE EXERCISE · 15 MINUTES", "The Power of Repetition: hear it, do it, teach it");
   const rounds = [
@@ -443,6 +482,8 @@ async function main() {
   CONNECT: Daily huddles = spaced repetition. Coaching at the machine = Round 2. Operators teaching new hires = Round 3. Machine ownership grows from all three.
   KEY MESSAGE (read aloud): "Training introduces the standard. Practice develops capability. Leadership reinforcement makes it stick."`);
 
+  }
+  if (true) {
   // ======================= 10. BEYOND OPERATOR ERROR =======================
   section("Root-Cause Thinking");
   s = content("PART 3 · ROOT-CAUSE THINKING", "Stop at “operator error” and the problem comes back");
@@ -468,6 +509,8 @@ async function main() {
   NOTE: This is not about removing accountability. Accountability is stronger when the standard is clear, the equipment is in good condition and leaders reinforce the right behavior.
   ASK: "Look at the last three incident or downtime reports for the Gemini. How many root causes say 'retrain'? Did the problem come back?"`);
 
+  }
+  if (true) {
   // ======================= 11. RCA TOOLKIT =======================
   s = content("PART 3 · THE ROOT-CAUSE TOOLKIT", "Six tools supervisors will use — and coach teams to use");
   const tools = [["FaQuestionCircle", "5 Whys", "Keep asking why until you reach a cause you can act on and verify. Support every answer with evidence."], ["FaFish", "Fishbone diagram", "Brainstorm possible causes across Machine, Method, Material, Measurement, People and Environment — then test them."], ["FaMicroscope", "Evidence-based RCA", "Facts over opinion. Go to the machine. Check data, photos, worn parts and records."], ["FaClipboardList", "Standard-work verification", "Does a standard exist? Is it correct? Is it followed on every shift? Check all three."], ["FaCog", "Equipment-condition assessment", "Look for wear, looseness, contamination, misalignment, missing parts and lubrication issues."], ["FaRedo", "Recurrence prevention", "Countermeasure + updated standard + training + verification that the problem stays fixed."]];
@@ -488,6 +531,8 @@ async function main() {
   RECURRENCE PREVENTION: The problem is not solved until it stays solved. Verify over a defined period.
   ASK: "Which of these do we use today? Which one do we skip most often?" (Typical answer: evidence and recurrence verification.)`);
 
+  }
+  if (true) {
   // ======================= 12. GEMINI JAM CASE =======================
   s = content("PART 3 · ILLUSTRATIVE GEMINI CASE", "Case: jams keep returning after retraining");
   box(s, 0.6, 1.5, 5.6, 0.85, { fill: K.navy });
@@ -521,8 +566,10 @@ async function main() {
   WALK THE FISHBONE: The real investigation might uncover a worn component, an incorrect centerline, a missing inspection point, or an inadequate PM task — or something else. The team must test each possibility against evidence.
   TABLE DISCUSSION (6 min): "If this were your Gemini, what evidence would you collect first, and who would you involve from Maintenance and Quality?"
   EXPECTED ANSWERS: Check the jam location and frequency by shift in Redzone; inspect the guide/transfer component for wear; compare current sensor/guide positions across shifts; review PM and CILT task lists for that area; check product/packaging lots.
-  LINK FORWARD: "The fixes here are exactly the AM tools we're about to deploy: centerlining, CILT inspection points, and defect handling."`);
+  ${AM ? "LINK FORWARD: the fixes here are exactly the AM tools we are about to deploy: centerlining, CILT inspection points, and defect handling." : "LINK FORWARD: root-cause thinking is how VO projects find countermeasures that last. A loss on the Pareto is a symptom; the project must find the system cause."}`);
 
+  }
+  if (true) {
   // ======================= 13. THREE CELLS =======================
   section("Gemini Deployment Model");
   s = content("PART 4 · THE GEMINI DEPLOYMENT MODEL", "Three machines, three cross-functional improvement cells");
@@ -533,7 +580,7 @@ async function main() {
     txt(s, "CELL " + (i + 1), { x: x + 1.15, y: 1.72, w: 2.5, h: 0.3, fontSize: 11, bold: true, color: K.teal, charSpacing: 2, margin: 0 });
     txt(s, "Gemini " + (i + 1), { x: x + 1.15, y: 2.0, w: 2.5, h: 0.45, fontSize: 22, bold: true, color: K.navy, margin: 0 });
     box(s, x + 0.25, 2.65, 3.35, 0.45, { fill: K.teal, r: 0.1 });
-    txt(s, "Ownership: AM + VO", { x: x + 0.25, y: 2.65, w: 3.35, h: 0.45, fontSize: 13, bold: true, color: K.white, align: "center", valign: "middle" });
+    txt(s, AM ? "Ownership: AM" : "Ownership: VO", { x: x + 0.25, y: 2.65, w: 3.35, h: 0.45, fontSize: 13, bold: true, color: K.white, align: "center", valign: "middle" });
     txt(s, [{ text: "Supervisor leader: ", options: { bold: true, color: K.navy } }, { text: "confirm at kickoff", options: { italic: true, color: K.slate } }], { x: x + 0.25, y: 3.25, w: 3.4, h: 0.35, fontSize: 13, margin: 0 });
     [["Production", K.teal], ["Maintenance", K.amber], ["Quality", K.blue]].forEach(([r, col], j) => {
       const y = 3.75 + j * 0.5;
@@ -544,19 +591,20 @@ async function main() {
   }
   box(s, 0.6, 5.95, 12.1, 0.85, { fill: K.light });
   iconCircle(s, "FaChalkboardTeacher", 0.8, 6.06, 0.62, K.teal);
-  txt(s, [{ text: "Continuous Improvement coaches and facilitates — ", options: { bold: true, color: K.navy } }, { text: "the cells own the work and the results.  Plant leadership sponsors  ·  Finance (Randy) validates savings." }], { x: 1.6, y: 5.95, w: 11.0, h: 0.85, fontSize: 14, valign: "middle" });
+  txt(s, [{ text: "Continuous Improvement coaches and facilitates — ", options: { bold: true, color: K.navy } }, { text: AM ? "the cells own the work and the results.  Plant leadership sponsors  ·  Maintenance & Quality are full cell members." : "the cells own the work and the results.  Plant leadership sponsors  ·  Finance (Randy) validates savings." }], { x: 1.6, y: 5.95, w: 11.0, h: 0.85, fontSize: 14, valign: "middle" });
   notes(s, `PURPOSE: Introduce the deployment structure.
   TIMING: 5 minutes.
   SAY: "Each Gemini gets its own cross-functional cell. Every cell has Production, Maintenance and Quality members, and one designated supervisor leader who owns the cell."
   ROLE OF CI: Continuous Improvement coaches and facilitates. CI will NOT perform every improvement project for the teams. The goal is to build supervisor and team capability — if CI does the work, the capability leaves when CI leaves.
-  COMMON FRAMEWORK: All three cells use the same deployment framework and the same four AM tools, but each develops equipment-specific standards and improvement plans.
+  ${AM ? "COMMON FRAMEWORK: All three cells use the same deployment framework and the same four AM tools, but each develops equipment-specific standards." : "COMMON FRAMEWORK: All three cells use the same six VO steps and the same savings rules, but each builds its own baseline, loss Pareto and project list."}
   DO NOT INVENT: Actual machine IDs, personnel names and shift coverage are intentionally TBD. Confirm them at kickoff and update this slide.
   ASK: "What does a good cell member from Maintenance and Quality need from the supervisor to be effective?" (Answer: clear meeting rhythm, protected time, visible follow-through.)`);
 
+  }
+  if (AM) {
   // ======================= 14. COMMON FRAMEWORK =======================
   s = content("PART 4 · COMMON FRAMEWORK, MACHINE-SPECIFIC STANDARDS", "Same tools in every cell — standards built for each Gemini");
-  const fwRows = [["Safety Map", "Template, hazard categories, approval route", "Layout, hazards, E-stops, LOTO points"], ["CILT", "Card format, frequency logic, escalation", "Inspection points, tasks, tools, photos"], ["Centerlining", "Register format, change-control rules", "Parameters, targets, ranges (validated)"], ["Defect Handling", "Tag, register, severity, escalation", "Defect history, owners, repeat issues"], ["Value Optimization", "Baseline method, loss categories, savings rules", "Loss Pareto, projects, financial data"], ["Daily management", "Huddle agenda, KPI board, WOr template", "Cell actions, machine-specific KPIs"]];
-  const hdr = (t) => ({ text: t, options: { bold: true, color: K.white, fill: { color: K.navy }, fontSize: 13 } });
+  const fwRows = [["Safety Map", "Template, hazard categories, approval route", "Layout, hazards, E-stops, LOTO points"], ["CILT", "Card format, frequency logic, escalation", "Inspection points, tasks, tools, photos"], ["Centerlining", "Register format, change-control rules", "Parameters, targets, ranges (validated)"], ["Defect Handling", "Tag, register, severity, escalation", "Defect history, owners, repeat issues"], ["Daily management", "Huddle agenda, KPI board, WOr template", "Cell actions, machine-specific KPIs"]];
   const fwData = [[hdr("Element"), hdr("Common to all three cells"), hdr("Specific to each Gemini")]].concat(fwRows.map((r, i) => [
     { text: r[0], options: { bold: true, color: K.navy, fill: { color: i % 2 ? K.white : K.light } } },
     { text: r[1], options: { fill: { color: i % 2 ? K.white : K.light } } },
@@ -574,6 +622,8 @@ async function main() {
   KICKOFF CHECKLIST: Walk through the right-hand list. Assign an owner and date for each item. None of these details have been assumed in this deck.
   ASK: "Are the three Geminis identical in design and product mix, or do they differ? What does that mean for our standards?"`);
 
+  }
+  if (AM) {
   // ======================= 15. WHAT AM IS =======================
   section("Autonomous Maintenance");
   s = content("PART 5 · AUTONOMOUS MAINTENANCE (AM)", "AM builds basic equipment conditions — not a cleaning program");
@@ -609,6 +659,8 @@ async function main() {
   NOTE ON CENTERLINING: Centerlining is not one of the original seven AM steps, but it is widely used in TPM-based systems in food and consumer-goods manufacturing as part of establishing and maintaining standard operating conditions.
   ASK: "If we only cleaned the Gemini more often, what would we still miss?"`);
 
+  }
+  if (AM) {
   // ======================= 16. SAFETY MAP =======================
   s = content("AM TOOL 1 · SAFETY MAPPING", "Safety map: see every hazard before touching the machine");
   box(s, 0.6, 1.5, 7.7, 5.3, { fill: K.light });
@@ -658,6 +710,8 @@ async function main() {
   RULE: Safety mapping happens BEFORE CILT tasks are written — you cannot define a safe cleaning or inspection task without knowing the hazards.
   ASK: "Where on your Gemini would a new operator be most likely to get hurt during cleaning?"`);
 
+  }
+  if (AM) {
   // ======================= 17. CILT ELEMENTS =======================
   s = content("AM TOOL 2 · CILT", "CILT: Cleaning, Inspection, Lubrication, Tightening");
   const cilt = [["C", "Cleaning", "FaBroom", "Cleaning is inspection. Removing build-up exposes leaks, cracks, wear and looseness.", "Operators — approved, safe methods within sanitation rules"], ["I", "Inspection", "FaEye", "Use senses and simple checks to compare the actual condition with the defined normal condition.", "Operators — with criteria defined by Maintenance and Quality"], ["L", "Lubrication", "FaOilCan", "Right lubricant, right point, right amount, right frequency — food-grade where required.", "Only as authorized — often Maintenance"], ["T", "Tightening", "FaWrench", "Find and correct looseness before it causes vibration, misalignment or failure.", "Operators only for approved, non-critical fasteners; otherwise Maintenance"]];
@@ -682,6 +736,8 @@ async function main() {
   FOOD SAFETY: Lubricants on or near product zones must meet the site's food-grade lubricant requirements; cleaning methods must follow sanitation procedures and allergen controls.
   ASK: "Which CILT tasks on the Gemini are clearly safe for operators? Which ones need a Maintenance decision?"`);
 
+  }
+  if (AM) {
   // ======================= 18. CILT CARD ANATOMY =======================
   s = content("AM TOOL 2 · CILT VISUAL STANDARD", "Anatomy of a visual CILT standard");
   box(s, 0.6, 1.5, 7.5, 5.3, { fill: K.white, line: K.navy, lw: 1.5 });
@@ -714,6 +770,8 @@ async function main() {
   TEMPLATE: This is an illustrative template. Field values are TBD and must come from the real Gemini, using real photos.
   ACTIVITY OPTION (10 min): Give each table a blank card. Ask them to fill it out for a simple, non-hazardous inspection point they know well, then trade cards with another table to test whether someone else could follow it.`);
 
+  }
+  if (AM) {
   // ======================= 19. CILT FLOW =======================
   s = content("AM TOOL 2 · CILT DELIVERABLES & ESCALATION", "From CILT check to work order: every abnormality is closed");
   const dels = [["FaClipboardList", "CILT master sheet"], ["FaCheckCircle", "Daily checklist"], ["FaCalendarAlt", "Weekly checklist"], ["FaMapMarkedAlt", "Inspection-point map"], ["FaChartBar", "CILT completion dashboard"], ["FaExclamationTriangle", "Abnormality escalation process"]];
@@ -745,6 +803,8 @@ async function main() {
   KEY MESSAGE: "A CILT check that finds an abnormality but goes nowhere teaches operators that CILT doesn't matter. Closing the loop is what builds ownership."
   ASK: "Today, when an operator reports a problem on the Gemini, how do they know whether it was fixed?"`);
 
+  }
+  if (AM) {
   // ======================= 20. CENTERLINING DEF + ZONES =======================
   s = content("AM TOOL 3 · CENTERLINING", "Centerlining: the right settings, every run, every shift");
   box(s, 0.6, 1.45, 12.1, 0.9, { fill: K.teal, tr: 85 });
@@ -783,6 +843,8 @@ async function main() {
   ANALOGY: Like a recipe with oven temperature and time. A cook who 'adjusts by feel' every time produces inconsistent results — and when it goes wrong, nobody knows why.
   ASK: "For your Gemini, do we know the target and range for every critical setting? Where are they written down?"`);
 
+  }
+  if (AM) {
   // ======================= 21. RUNS BUT NOT RIGHT =======================
   s = content("AM TOOL 3 · CENTERLINING", "A running machine is not the same as a machine running right");
   box(s, 0.6, 1.5, 3.6, 5.3, { fill: K.navy });
@@ -813,6 +875,8 @@ async function main() {
   KEY POINT: When settings are not centerlined, troubleshooting becomes guesswork because nobody knows what 'normal' looks like.
   ASK: "On your Gemini, is there a setting that each shift runs differently? Who decided which one is right?"`);
 
+  }
+  if (AM) {
   // ======================= 22. CENTERLINE REGISTER =======================
   s = content("AM TOOL 3 · CENTERLINE REGISTER", "Centerline register: one per Gemini, per product where needed");
   const ch = ["Parameter", "Target", "Approved range", "Actual", "Status", "Validated by"].map(hdr);
@@ -838,6 +902,8 @@ async function main() {
   VISUAL CONTROLS: Once validated, mark settings at the machine (e.g., colored range marks on gauges, position marks on guides, HMI recipe locks where available).
   ASK: "Which three parameters on your Gemini cause the most adjustment today? Start your register with those."`);
 
+  }
+  if (AM) {
   // ======================= 23. BENEFITS + CHANGE CONTROL =======================
   s = content("AM TOOL 3 · BENEFITS & CHANGE CONTROL", "Why centerlining pays off — and how changes are controlled");
   const ben = [["Consistent startup", "Same settings, same result, every shift"], ["Faster changeovers", "Go to the known setting instead of searching"], ["Reduced adjustment losses", "Less time and product lost to tweaking"], ["Better product quality", "Stable conditions, stable product"], ["Reduced scrap", "Fewer out-of-condition runs"], ["More repeatable performance", "Shift-to-shift differences shrink"], ["Easier troubleshooting", "Compare actual to standard — fast"]];
@@ -871,6 +937,8 @@ async function main() {
   NOTE: Authorization levels (who may adjust which parameter) must be defined per Gemini by Maintenance and Quality and documented on the register.
   ASK: "Who is authorized today to change speed on your Gemini? Is that written anywhere?"`);
 
+  }
+  if (AM) {
   // ======================= 24. CENTERLINE DETECTIVE =======================
   s = dark("INTERACTIVE EXERCISE · 20 MINUTES", "The Centerline Detective");
   box(s, 0.6, 1.5, 4.6, 5.3, { fill: K.white });
@@ -903,6 +971,8 @@ async function main() {
   DEBRIEF: "Why can unapproved adjustments make it worse?" — they stack new variation on top of the original cause and destroy the evidence. Centerline changes must follow defined authorization and verification rules.
   LIKELY RESOLUTION PATH: Return to validated centerline (authorized person), verify the replaced component, verify product, then investigate root cause of the original stops.`);
 
+  }
+  if (AM) {
   // ======================= 25. DEFECT TYPES =======================
   s = content("AM TOOL 4 · DEFECT HANDLING", "Not all defects are the same — know which one you are facing");
   const dtypes = [["FaCog", "Equipment abnormality", K.amber, "Machine condition differs from normal", "Loose bolt, leak, noise, wear, build-up", "Maintenance (via tag)"], ["FaBoxOpen", "Product-quality defect", K.blue, "Product does not meet specification", "Weight, seal, appearance, foreign-material risk", "Quality — contain product"], ["FaExclamationTriangle", "Safety defect", K.coral, "Condition that could injure someone", "Damaged guard, failed interlock, slip hazard, exposed wiring", "Stop & make safe — EHS"], ["FaSlidersH", "Process deviation", K.teal, "Operating outside the approved standard or centerline", "Setting out of range, skipped step, wrong changeover setup", "Supervisor — Quality if product affected"], ["FaRedo", "Recurring equipment failure", K.navy, "Same problem returns after being “fixed”", "Repeat jams, repeat part failures", "Cell RCA team"]];
@@ -928,6 +998,8 @@ async function main() {
   KEY RULE: One event can be several types at once. Always address the highest risk first: people, then food safety and product, then equipment, then output.
   ASK: "Give me an example from the Gemini of each type." Capture on a flip chart — these become the starting point for each cell's defect register.`);
 
+  }
+  if (AM) {
   // ======================= 26. DEFECT CYCLE =======================
   s = content("AM TOOL 4 · THE DEFECT-HANDLING CYCLE", "From detection to prevention — nine steps, every time");
   const cyc = ["Detect", "Make safe / Contain", "Tag", "Report", "Assign", "Correct", "Verify", "Close", "Prevent recurrence"];
@@ -957,6 +1029,8 @@ async function main() {
   KEY LINE (read aloud): "A defect isn't closed when it's fixed. It's closed when the fix is verified and the cause is prevented from returning."
   ASK: "Which step do we skip most often today?" (Usual answers: verify and prevent recurrence.)`);
 
+  }
+  if (AM) {
   // ======================= 27. TAG + RECORD =======================
   s = content("AM TOOL 4 · DEFECT TAG & RECORD", "Tag it, log it, own it: the defect record");
   box(s, 0.9, 1.5, 3.7, 4.2, { fill: K.coral, shadow: true });
@@ -977,6 +1051,8 @@ async function main() {
   RECORD (right): Every defect in the register has the 12 fields shown. Emphasize: a NAMED owner (not "Maintenance"), and closure VERIFICATION by someone other than the person who fixed it.
   ASK: "What happens today when a defect has no named owner?"`);
 
+  }
+  if (AM) {
   // ======================= 28. ESCALATION =======================
   s = content("AM TOOL 4 · ESCALATION", "Escalation: safety and food safety come first — always");
   const esc = [
@@ -1002,6 +1078,8 @@ async function main() {
   KEY MESSAGE: "Safety and compliance are never traded for output — or for savings."
   ASK: "Does everyone on your shift know they have the authority to stop the Gemini for an S1 condition?"`);
 
+  }
+  if (AM) {
   // ======================= 29. DEFECT EXERCISE =======================
   s = dark("INTERACTIVE EXERCISE · 20 MINUTES", "Stop, contain, escalate — or continue?");
   const scen = [["A", "During CILT, an operator finds fresh metal shavings near a product-contact area on Gemini X."], ["B", "A bearing on Gemini X has made a growing noise for three days. No heat, no product impact, no safety exposure."], ["C", "An interlocked guard door is found taped open “to speed up jam clearing.”"], ["D", "The same jam has occurred four times this week. Each time it is cleared using the approved jam-clearing procedure."]];
@@ -1030,6 +1108,8 @@ async function main() {
   D — Repeat jam cleared with approved procedure: CONTINUE using the approved procedure, but TAG as a RECURRING failure and launch root-cause analysis (centerline check, condition check — connect to the Centerline Detective and the jam case).
   DEBRIEF: How did Maintenance, Production and Quality each contribute to the decision? Production detects and contains; Maintenance assesses and corrects equipment; Quality decides product disposition; EHS governs safety.`);
 
+  }
+  if (AM) {
   // ======================= 30. AM/PM/QUALITY =======================
   section("PM & Quality Integration");
   s = content("PART 6 · PLANNED MAINTENANCE & QUALITY INTEGRATION", "AM, PM and Quality: three roles, one equipment system");
@@ -1065,6 +1145,8 @@ async function main() {
   SHARED ACTION & ESCALATION: Detect → supervisor triage (severity, type) → owner assigned (Production, Maintenance or Quality) → weekly cell review of open actions → plant leadership removes barriers that the cell cannot.
   ASK: "How does Maintenance find out today about what operators see during cleaning?"`);
 
+  }
+  if (VO) {
   // ======================= 31. AM vs VO =======================
   section("Value Optimization");
   s = content("PART 7 · VALUE OPTIMIZATION (VO)", "Two pillars, two jobs: AM stabilizes, VO targets the losses");
@@ -1093,6 +1175,8 @@ async function main() {
   CONSISTENT TERMINOLOGY: Use "AM" and "VO" as the two pillars throughout. Do not use them interchangeably.
   ASK: "If we only did AM, how would we know whether we were working on the right losses? If we only did VO, why might savings disappear?"`);
 
+  }
+  if (VO) {
   // ======================= 32. VO STEPS + STEP 1 =======================
   s = content("PART 7 · VO STEP 1", "Establish the baseline: 4–8 weeks of data for each Gemini");
   const vo = ["1 Baseline", "2 Losses", "3 Prioritize", "4 Projects", "5 Validate savings", "6 Sustain"];
@@ -1123,6 +1207,8 @@ async function main() {
   NO DATA IN THIS DECK: No actual Gemini performance results are shown or implied. The baseline will be built during Days 1–30.
   ASK: "How confident are we in the downtime reasons currently entered for the Gemini? Who enters them, and when?"`);
 
+  }
+  if (VO) {
   // ======================= 33. STEP 2 LOSSES =======================
   s = content("PART 7 · VO STEP 2", "Identify the losses: Six Big Losses and who influences them");
   const groups = [["AVAILABILITY", K.coral, [["Equipment failures", "Unplanned stops & breakdowns", "AM · PM"], ["Setup & adjustments", "Changeovers, startup adjustments", "AM (centerline) · Process · Scheduling"]]], ["PERFORMANCE", K.amber, [["Idling & minor stops", "Short stops, jams, blocked/starved", "AM · Process"], ["Reduced speed", "Running below standard rate", "AM (centerline) · PM · Process"]]], ["QUALITY", K.blue, [["Process defects", "Scrap and rework during steady run", "Quality · AM · Process"], ["Reduced yield", "Startup and changeover rejects", "AM (centerline) · Quality · Scheduling"]]]];
@@ -1163,6 +1249,8 @@ async function main() {
   PARETO (right): ILLUSTRATIVE ONLY — the values are invented to show how a Pareto works. They are NOT Gemini data. Each cell builds its own Pareto from the baseline. The bars show loss size, largest first; the line shows cumulative percentage — typically a few categories drive most of the loss.
   ASK: "Without looking at data, what do you think is the biggest loss on your Gemini?" Then: "We'll check that against the baseline — intuition is often wrong."`);
 
+  }
+  if (VO) {
   // ======================= 34. STEP 3 PRIORITIZE =======================
   s = content("PART 7 · VO STEP 3", "Prioritize: safety gate first, then impact versus ease");
   box(s, 0.6, 1.5, 3.3, 5.3, { fill: K.coral });
@@ -1196,6 +1284,8 @@ async function main() {
   SCORING: Score each criterion 1–5. The cell agrees scores together with CI and Maintenance, so priorities are owned, not imposed.
   ASK: "What makes an improvement 'sustainable'?" (Answer: it changes a standard, not just a one-time fix; it does not depend on one person.)`);
 
+  }
+  if (VO) {
   // ======================= 35. STEP 4 PROJECTS =======================
   s = content("PART 7 · VO STEP 4", "Develop projects: start small, prove ownership, then scale");
   const waves = [["WAVE 1", "Starter projects — cell-led (Days 31–90)", ["Reduce recurring minor stops", "Improve changeover consistency", "Reduce adjustment losses", "Improve CILT completion", "Eliminate repeat equipment defects", "Improve centerline adherence", "Reduce product scrap", "Reduce unplanned downtime"], 2.55, K.teal], ["WAVE 2", "Expand — after measurable results", ["Structured changeover reduction (SMED)", "PM optimization with Maintenance", "Quality-loss RCA (DMAIC)", "Cross-shift standard harmonization"], 2.05, K.amber], ["WAVE 3", "Scale", ["Standardize best practices across all three Geminis", "Next-wave AM + VO deployment to other lines", "Experienced supervisors coach new cells"], 1.55, K.navy]];
@@ -1216,6 +1306,8 @@ async function main() {
   GATE: Move to the next wave only when the basics are sustained (CILT and centerline adherence) and at least one result has been validated by Finance.
   ASK: "Which Wave 1 project would make the biggest difference to your team's daily frustration?"`);
 
+  }
+  if (VO) {
   // ======================= 36. STEP 5 SAVINGS =======================
   s = content("PART 7 · VO STEP 5", "Validate savings with Finance (Randy)");
   const sv = ["Baseline", "Improvement", "Comparable results", "Financial calculation", "Finance approval", "Sustained results"];
@@ -1243,6 +1335,38 @@ async function main() {
   DOUBLE-COUNTING: If a CILT project and a centerline project both reduce minor stops on Gemini 2, the reduction is counted once. Finance allocates.
   CRITICAL RULE: Do not present projected benefits as achieved results — in WOr reviews, dashboards or anywhere else.`);
 
+  }
+  if (VO) {
+  // ======================= 136. SAVINGS EXERCISE =======================
+  s = dark("INTERACTIVE EXERCISE · 20 MINUTES", "Savings or not? Classify the benefit");
+  const sc = [["A", "Cell 2 projects a large downtime reduction from a new CILT point implemented last week."], ["B", "Minor stops on Gemini 1 stayed below the agreed baseline for the agreed period, with comparable product mix. Finance reviewed and approved the calculation."], ["C", "A worn gearbox was replaced before it failed. A failure would have caused a long unplanned outage."], ["D", "The same scrap reduction on Gemini 3 is claimed by both the centerline project and the changeover project."]];
+  sc.forEach(([l, t], i) => {
+    const x = 0.6 + (i % 2) * 4.3, y = 1.5 + Math.floor(i / 2) * 2.4;
+    box(s, x, y, 4.1, 2.2, { fill: K.white });
+    numCircle(s, l, x + 0.2, y + 0.2, 0.6, K.amber, 18, K.navy);
+    txt(s, "SCENARIO " + l, { x: x + 0.95, y: y + 0.27, w: 2.8, h: 0.45, fontSize: 12, bold: true, color: K.slate, charSpacing: 2, valign: "middle", margin: 0 });
+    txt(s, t, { x: x + 0.2, y: y + 0.9, w: 3.7, h: 1.25, fontSize: 13, color: K.ink, margin: 0 });
+  });
+  box(s, 9.3, 1.5, 3.4, 4.6, { fill: K.teal });
+  txt(s, "CLASSIFY AS", { x: 9.5, y: 1.65, w: 3, h: 0.3, fontSize: 11, bold: true, color: K.white, charSpacing: 2, margin: 0 });
+  ["Estimated", "Validated", "Cost avoidance", "Realized", "Double-count risk"].forEach((t, i) => {
+    box(s, 9.5, 2.05 + i * 0.6, 3.0, 0.48, { fill: K.white, r: 0.12 });
+    txt(s, t, { x: 9.5, y: 2.05 + i * 0.6, w: 3.0, h: 0.48, fontSize: 14, bold: true, color: K.navy, align: "center", valign: "middle" });
+  });
+  txt(s, "Then: what would make it validated?", { x: 9.5, y: 5.2, w: 3.05, h: 0.8, fontSize: 13, bold: true, color: K.white, margin: 0 });
+  txt(s, "All scenarios are hypothetical. No real Gemini results or dollar values are implied.", { x: 0.6, y: 6.4, w: 12.1, h: 0.4, fontSize: 13, italic: true, color: K.light, margin: 0 });
+  notes(s, `PURPOSE: Practice using the savings vocabulary correctly — the most common source of disputes with Finance.
+  TIMING: 20 minutes (2 min setup, 10 min tables, 8 min debrief).
+  SETUP: Tables classify each scenario and answer "what evidence would make it validated?" All scenarios are hypothetical.
+  MODEL ANSWERS:
+  A — ESTIMATED. Implemented last week; no comparable results yet. It belongs in the pipeline only. To validate: run for the agreed period, compare to baseline with comparable mix, calculate with Finance-approved rates, get Randy's approval.
+  B — VALIDATED. Comparable before/after data, agreed period, Finance approval. It becomes REALIZED when it shows up in actual financial results.
+  C — COST AVOIDANCE. The cost was never in current spend. Report it separately from savings, using Finance's rules for avoided failures.
+  D — DOUBLE-COUNT RISK. One loss reduction, two claims. Count it once; Finance allocates between projects (or credits it jointly).
+  DEBRIEF: "Why does this matter?" — credibility. One overstated claim makes leadership doubt every result the program reports. Never present projected benefits as achieved.`);
+
+  }
+  if (VO) {
   // ======================= 37. STEP 6 SUSTAIN =======================
   s = content("PART 7 · VO STEP 6", "Sustain and expand: prove it holds, then spread it");
   const sus = [["FaClipboardList", "Documented standards"], ["FaGraduationCap", "Training & competency"], ["FaClipboardCheck", "Audits"], ["FaChartLine", "Periodic performance reviews"], ["FaLayerGroup", "Expand to next wave"]];
@@ -1267,79 +1391,107 @@ async function main() {
   PROOF OF SUSTAINMENT: Demonstrate that the improvement continues across shifts and product changes, and over an agreed period (to be set with Finance — e.g., several weeks of stable results).
   ASK: "What usually causes an improvement to fade on our lines?" (Typical answers: people change, the standard isn't updated, nobody checks.) Each of those is addressed by the cycle on this slide.`);
 
+  }
+  if (true) {
   // ======================= 38. RACI =======================
   section("Roles & Roadmap");
-  s = content("PART 8 · ROLES & RESPONSIBILITIES", "Gemini deployment responsibility matrix (RACI)");
-  const rh = ["Activity", "Supervisor", "Production", "Maintenance", "Quality", "CI Manager", "Finance (Randy)", "Plant Leadership"];
-  const raci = [
-    ["Lead cell & conduct daily huddles", "A/R", "R", "C", "C", "C", "–", "I"],
-    ["Create & approve safety map (EHS approves)", "A", "R", "R", "C", "C", "–", "I"],
-    ["Develop CILT standards", "A", "R", "R", "C", "C", "–", "I"],
-    ["Execute approved AM / CILT tasks", "A", "R", "C", "I", "I", "–", "–"],
-    ["Technical repairs & PM", "I", "I", "A/R", "C", "I", "–", "–"],
-    ["Define & validate centerlines", "A", "C", "R", "R", "C", "–", "I"],
-    ["Follow centerline standards", "A", "R", "C", "C", "I", "–", "–"],
-    ["Detect, tag & report defects", "A", "R", "R", "R", "I", "–", "–"],
-    ["Resolve equipment abnormalities", "C", "C", "A/R", "C", "I", "–", "–"],
-    ["Product disposition & quality verification", "C", "I", "C", "A/R", "I", "–", "I"],
-    ["Baseline data & loss analysis (VO)", "A", "C", "C", "C", "R", "C", "I"],
+  s = content("PART 8 · ROLES & RESPONSIBILITIES", AM ? "AM deployment responsibility matrix (RACI)" : "VO deployment responsibility matrix (RACI)");
+  const rh = AM ? ["Activity", "Supervisor", "Production", "Maintenance", "Quality", "CI Manager", "Plant Leadership"] : ["Activity", "Supervisor", "Production", "Maintenance", "Quality", "CI Manager", "Finance (Randy)", "Plant Leadership"];
+  const raci = AM ? [
+    ["Lead cell & conduct daily huddles", "A/R", "R", "C", "C", "C", "I"],
+    ["Create & approve safety map (EHS approves)", "A", "R", "R", "C", "C", "I"],
+    ["Develop CILT standards", "A", "R", "R", "C", "C", "I"],
+    ["Execute approved AM / CILT tasks", "A", "R", "C", "I", "I", "–"],
+    ["Technical repairs & PM", "I", "I", "A/R", "C", "I", "–"],
+    ["Define & validate centerlines", "A", "C", "R", "R", "C", "I"],
+    ["Follow centerline standards", "A", "R", "C", "C", "I", "–"],
+    ["Detect, tag & report defects", "A", "R", "R", "R", "I", "–"],
+    ["Resolve equipment abnormalities", "C", "C", "A/R", "C", "I", "–"],
+    ["Product disposition & quality verification", "C", "I", "C", "A/R", "I", "I"],
+    ["Root-cause analysis of repeat defects", "A", "R", "R", "R", "C", "I"],
+    ["Methodology, templates & tracking", "C", "I", "I", "I", "A/R", "I"],
+    ["Resources & barrier removal", "C", "–", "C", "C", "C", "A/R"],
+    ["Present AM results at WOr", "A/R", "R", "C", "C", "C", "I"],
+  ] : [
+    ["Lead cell & VO cadence", "A/R", "R", "C", "C", "C", "–", "I"],
+    ["Provide accurate downtime & production data", "A", "R", "R", "R", "C", "–", "I"],
+    ["Baseline data & loss analysis", "A", "C", "C", "C", "R", "C", "I"],
+    ["Review baseline assumptions", "C", "–", "–", "–", "R", "A", "I"],
+    ["Prioritize opportunities", "A", "C", "C", "C", "R", "C", "I"],
     ["Lead improvement projects", "A/R", "R", "R", "R", "C", "C", "I"],
+    ["Measure results vs baseline", "A", "I", "C", "C", "R", "C", "I"],
     ["Validate financial benefits", "C", "–", "–", "–", "R", "A", "I"],
+    ["Prevent double-counting", "I", "–", "–", "–", "R", "A", "I"],
+    ["Sustain: standards, audits, reviews", "A", "R", "R", "R", "C", "–", "I"],
     ["Methodology, templates & tracking", "C", "I", "I", "I", "A/R", "I", "I"],
     ["Resources & barrier removal", "C", "–", "C", "C", "C", "–", "A/R"],
-    ["Present results at WOr", "A/R", "R", "C", "C", "C", "C", "I"],
+    ["Present VO results at WOr", "A/R", "R", "C", "C", "C", "C", "I"],
   ];
   const cellFill = (v) => (v === "A/R" ? K.teal : v === "A" ? K.navy : v === "R" ? K.teal : v === "C" ? K.light : K.white);
   const cellTr = (v) => (v === "R" ? 60 : 0);
-  const raciData = [rh.map((t) => ({ text: t, options: { bold: true, color: K.white, fill: { color: K.navy }, fontSize: 11, align: t === "Activity" ? "left" : "center" } }))].concat(raci.map((r) => r.map((v, j) => j === 0 ? { text: v, options: { bold: true, color: K.navy } } : { text: v, options: { align: "center", bold: true, color: v === "A" || v === "A/R" ? K.white : K.navy, fill: { color: cellFill(v), transparency: cellTr(v) } } })));
-  s.addTable(raciData, { x: 0.6, y: 1.42, w: 12.1, colW: [3.9, 1.15, 1.15, 1.2, 1.1, 1.15, 1.2, 1.25], rowH: 0.305, fontSize: 10, color: K.ink, fontFace: "Calibri", valign: "middle", border: { type: "solid", pt: 0.5, color: HEX.grid }, margin: [0.02, 0.06, 0.02, 0.06] });
-  txt(s, "R = Responsible   A = Accountable   C = Consulted   I = Informed   ·   Draft — validate at kickoff. EHS approves safety maps and safety-critical tasks.", { x: 0.6, y: 6.68, w: 12.1, h: 0.3, fontSize: 10, color: K.slate, margin: 0 });
-  notes(s, `PURPOSE: The Gemini deployment responsibility matrix — who is Responsible, Accountable, Consulted and Informed for each key activity.
+  const raciData = [rh.map((t) => ({ text: t, options: { bold: true, color: K.white, fill: { color: K.navy }, fontSize: 12, align: t === "Activity" ? "left" : "center" } }))].concat(raci.map((r) => r.map((v, j) => j === 0 ? { text: v, options: { bold: true, color: K.navy } } : { text: v, options: { align: "center", bold: true, color: v === "A" || v === "A/R" ? K.white : K.navy, fill: { color: cellFill(v), transparency: cellTr(v) } } })));
+  const roleW = (12.1 - 4.2) / (rh.length - 1);
+  s.addTable(raciData, { x: 0.6, y: 1.42, w: 12.1, colW: [4.2].concat(Array(rh.length - 1).fill(roleW)), rowH: 0.35, fontSize: 11, color: K.ink, fontFace: "Calibri", valign: "middle", border: { type: "solid", pt: 0.5, color: HEX.grid }, margin: [0.02, 0.06, 0.02, 0.06] });
+  txt(s, "R = Responsible   A = Accountable   C = Consulted   I = Informed   ·   Draft — validate at kickoff." + (AM ? " EHS approves safety maps and safety-critical tasks." : " Finance (Randy) is Accountable for every reported saving."), { x: 0.6, y: 6.72, w: 12.1, h: 0.3, fontSize: 10, color: K.slate, margin: 0 });
+  notes(s, AM ? `PURPOSE: The AM deployment responsibility matrix — who is Responsible, Accountable, Consulted and Informed for each key AM activity.
   TIMING: 6 minutes (leadership kickoff: walk the A column for each role).
-  READING THE MATRIX: R = does the work; A = owns the outcome and signs off (one A per row where possible); C = consulted before decisions; I = kept informed.
+  READING THE MATRIX: R = does the work; A = owns the outcome and signs off; C = consulted before decisions; I = kept informed.
   KEY POINTS:
   • Supervisors are Accountable for most cell activities — this is what "equipment owner" means.
   • Maintenance is Accountable and Responsible for technical repairs and PM, and Responsible for validating centerlines (with Quality).
   • Quality is Accountable for product disposition and quality verification.
-  • The CI Manager owns the methodology and tracking, and does the baseline analysis with the cell — but does not own the cell's projects.
-  • Finance (Randy) is Accountable for validating financial benefits.
+  • The CI Manager owns the methodology and tracking but does not own the cell's work.
   • Plant Leadership is Accountable for resources and barrier removal.
   • EHS (not shown as a column) approves safety maps and any safety-critical task assignment.
-  DRAFT: Validate this matrix with all functions at kickoff and adjust to site practice.`);
+  DRAFT: Validate with all functions at kickoff.` : `PURPOSE: The VO deployment responsibility matrix.
+  TIMING: 6 minutes.
+  KEY POINTS:
+  • Supervisors are Accountable for their cell's baseline, priorities and projects.
+  • Production, Maintenance and Quality are Responsible for accurate data — the baseline is only as good as the downtime and scrap records behind it.
+  • The CI Manager is Responsible for the baseline analysis and measurement method, coaching the cell rather than doing the projects.
+  • Finance (Randy) is Accountable for reviewing baseline assumptions, validating financial benefits and preventing double-counting.
+  • Plant Leadership is Accountable for resources and barrier removal.
+  DRAFT: Validate with all functions at kickoff.`);
 
+  }
+  if (true) {
   // ======================= 39. ROLE CARDS =======================
   s = content("PART 8 · ROLES & RESPONSIBILITIES", "What each role owns");
-  const rc = [
-    ["FaUserTie", "Supervisors", K.navy, ["Lead the assigned Gemini cell", "Conduct daily huddles", "Reinforce standards", "Monitor CILT & centerline adherence", "Escalate defects", "Coach employees", "Lead improvement projects", "Present results to leadership"]],
+  const rc = AM ? [
+    ["FaUserTie", "Supervisors", K.navy, ["Lead the assigned Gemini cell", "Conduct daily huddles", "Reinforce standards", "Monitor CILT & centerline adherence", "Escalate defects", "Coach employees", "Lead AM improvement actions", "Present results to leadership"]],
     ["FaUsers", "Production", K.teal, ["Execute approved AM tasks", "Identify abnormal conditions", "Follow centerline standards", "Report defects", "Participate in RCA and improvements"]],
     ["FaWrench", "Maintenance", K.amber, ["Own technical repairs and PM", "Validate maintenance-related standards", "Support centerline development", "Resolve equipment abnormalities", "Train operators on approved activities"]],
     ["FaShieldAlt", "Quality", K.blue, ["Define product requirements", "Support centerline validation", "Investigate quality losses", "Verify product disposition and quality improvement"]],
-    ["FaChalkboardTeacher", "Continuous Improvement Manager", K.teal, ["Own the deployment methodology", "Coach supervisors and teams; facilitate problem-solving", "Develop standard templates; track progress", "Support VO analysis and savings measurement; report progress"]],
+    ["FaChalkboardTeacher", "Continuous Improvement Manager", K.teal, ["Own the AM deployment methodology", "Coach supervisors and teams; facilitate problem-solving", "Develop standard templates", "Track deployment progress; report program progress"]],
+    ["FaFlag", "Plant Leadership", K.coral, ["Provide resources", "Remove barriers", "Review progress", "Reinforce accountability"]],
+  ] : [
+    ["FaUserTie", "Supervisors", K.navy, ["Own the cell's loss baseline", "Lead loss analysis & prioritization", "Lead improvement projects", "Track results vs baseline", "Coach team problem-solving", "Present results to leadership"]],
+    ["FaUsers", "Production", K.teal, ["Record accurate downtime & production data", "Participate in loss analysis", "Execute project actions", "Sustain new standards"]],
+    ["FaWrench", "Maintenance", K.amber, ["Analyze equipment-related losses", "Lead PM-related countermeasures", "Validate technical solutions", "Record maintenance losses accurately"]],
+    ["FaShieldAlt", "Quality", K.blue, ["Quantify scrap & rework losses", "Investigate quality losses", "Verify product impact of improvements", "Verify product disposition"]],
+    ["FaChalkboardTeacher", "Continuous Improvement Manager", K.teal, ["Own the VO methodology", "Coach supervisors; facilitate problem-solving", "Support VO analysis and savings measurement", "Track and report program progress"]],
     ["FaDollarSign", "Finance — Randy", K.green, ["Review baseline assumptions", "Validate financial calculations", "Confirm realized benefits", "Prevent double-counting"]],
     ["FaFlag", "Plant Leadership", K.coral, ["Provide resources", "Remove barriers", "Review progress", "Reinforce accountability"]],
   ];
+  const nb = rc.length - 4, bw = (12.1 - (nb - 1) * 0.2) / nb;
   rc.forEach(([ic, h, col, items], i) => {
     const top = i < 4;
-    const w = top ? 2.9 : 3.9, gap = top ? 0.167 : 0.2;
+    const w = top ? 2.9 : bw, gap = top ? 0.167 : 0.2;
     const x = 0.6 + (top ? i : i - 4) * (w + gap), y = top ? 1.45 : 4.35, hh = top ? 2.75 : 2.45;
     box(s, x, y, w, hh, { fill: K.light });
     iconCircle(s, ic, x + 0.15, y + 0.15, 0.5, col);
     txt(s, h, { x: x + 0.75, y: y + 0.15, w: w - 0.85, h: 0.5, fontSize: 13, bold: true, color: K.navy, valign: "middle", margin: 0 });
     txt(s, bullets(items, { space: 1 }), { x: x + 0.12, y: y + 0.72, w: w - 0.22, h: hh - 0.8, fontSize: 11 });
   });
-  notes(s, `PURPOSE: Detail what each role owns in the Gemini deployment.
+  notes(s, `PURPOSE: Detail what each role owns in the Gemini ${AM ? "AM" : "VO"} deployment.
   TIMING: 5 minutes.
-  SUPERVISORS: Lead the assigned Gemini cell; conduct daily huddles; reinforce standards; monitor CILT and centerline adherence; escalate defects; coach employees; lead improvement projects; present results to leadership.
-  PRODUCTION: Execute approved AM tasks; identify abnormal conditions; follow centerline standards; report defects; participate in RCA and improvements.
-  MAINTENANCE: Own technical repairs and PM; validate maintenance-related standards; support centerline development; resolve equipment abnormalities; train operators on approved activities.
-  QUALITY: Define product requirements; support centerline validation; investigate quality losses; verify product disposition and quality improvement.
-  CI MANAGER: Own the improvement deployment methodology; coach supervisors and teams; facilitate problem-solving; develop standard templates; track deployment progress; support VO analysis and savings measurement; report program progress.
-  FINANCE (RANDY): Review baseline assumptions; validate financial calculations; confirm realized benefits; prevent double-counting.
-  PLANT LEADERSHIP: Provide resources; remove barriers; review progress; reinforce accountability.
-  ASK EACH FUNCTION: "What do you need from the other roles to deliver your part?" Record commitments.`);
+  WALK EACH CARD and ask each function: "What do you need from the other roles to deliver your part?" Record commitments.
+  ${AM ? "Finance is not shown here: Finance validation of savings belongs to the VO pillar (companion deck)." : "Finance (Randy) reviews baseline assumptions, validates financial calculations, confirms realized benefits and prevents double-counting."}`);
 
+  }
+  if (true) {
   // ======================= 40. GANTT =======================
-  s = content("PART 9 · 90-DAY DEPLOYMENT ROADMAP", "90 days: foundation, implementation, sustainment");
+  s = content("PART 9 · 90-DAY DEPLOYMENT ROADMAP", AM ? "90-day AM roadmap: foundation, implementation, sustainment" : "90-day VO roadmap: foundation, implementation, sustainment");
   const gx = 4.0, gw = 8.7, wk = gw / 13, gy = 1.45;
   [["FOUNDATION · DAYS 1–30", 1, 4, K.teal], ["IMPLEMENTATION · DAYS 31–60", 5, 8, K.amber], ["SUSTAINMENT · DAYS 61–90", 9, 13, K.navy]].forEach(([t, a, b, col]) => {
     box(s, gx + (a - 1) * wk + 0.02, gy, (b - a + 1) * wk - 0.04, 0.34, { fill: col, r: 0.05 });
@@ -1349,12 +1501,16 @@ async function main() {
     txt(s, "W" + w, { x: gx + (w - 1) * wk, y: gy + 0.38, w: wk, h: 0.24, fontSize: 10, bold: true, color: K.slate, align: "center", margin: 0 });
     if (w > 1) line(s, gx + (w - 1) * wk, gy + 0.62, gx + (w - 1) * wk, 6.75, HEX.grid, 0.5);
   }
-  const tasks = [
-    ["Confirm cell ownership & kickoff", 1, 1, 0], ["Machine assessments", 1, 3, 0], ["Collect & lock baseline data", 1, 4, 0], ["Create safety maps", 2, 4, 0], ["Identify CILT points", 2, 4, 0], ["Establish defect registers", 2, 3, 0], ["Supervisor coaching (ongoing)", 1, 13, 0],
-    ["Launch approved CILT standards", 5, 6, 1], ["Validate centerline parameters", 5, 8, 1], ["Train employees", 5, 8, 1], ["Implement defect handling", 5, 6, 1], ["Integrate PM & Quality", 6, 8, 1], ["Identify VO opportunities", 6, 7, 1], ["Start small projects", 7, 13, 1],
-    ["Audit deployment", 9, 12, 2], ["Review defect closure", 9, 13, 2], ["Verify centerline adherence", 9, 12, 2], ["Compare performance to baseline", 11, 12, 2], ["Validate financial benefits", 12, 13, 2], ["Present results (WOr)", 13, 13, 2], ["Next-wave deployment plan", 12, 13, 2],
+  const tasks = AM ? [
+    ["Confirm cell ownership & kickoff", 1, 1, 0], ["Machine assessments", 1, 3, 0], ["Create safety maps", 2, 4, 0], ["Identify CILT points", 2, 4, 0], ["Establish defect registers", 2, 3, 0], ["Gather settings, OEM & PM records", 2, 4, 0], ["Supervisor coaching (ongoing)", 1, 13, 0],
+    ["Launch approved CILT standards", 5, 6, 1], ["Validate centerline parameters", 5, 8, 1], ["Train employees", 5, 8, 1], ["Implement defect handling", 5, 6, 1], ["Integrate PM & Quality", 6, 8, 1], ["Start cell AM improvement actions", 7, 13, 1],
+    ["Audit deployment", 9, 12, 2], ["Review defect closure", 9, 13, 2], ["Verify centerline adherence", 9, 12, 2], ["Review AM metric trends", 11, 12, 2], ["Present results (WOr)", 13, 13, 2], ["Next-wave AM plan", 12, 13, 2],
+  ] : [
+    ["Confirm cell ownership & kickoff", 1, 1, 0], ["Map Redzone data & reason codes", 1, 2, 0], ["Collect baseline data", 1, 4, 0], ["Data-quality review", 2, 3, 0], ["Agree baseline with Finance", 3, 4, 0], ["Supervisor coaching (ongoing)", 1, 13, 0],
+    ["Build loss Paretos", 5, 6, 1], ["Separate losses by owner", 5, 6, 1], ["Prioritize opportunities", 6, 7, 1], ["Charter starter projects", 7, 7, 1], ["Execute starter projects", 7, 13, 1], ["Track results weekly vs baseline", 8, 13, 1],
+    ["Sustainment checks (shifts, products)", 9, 13, 2], ["Compare performance to baseline", 11, 12, 2], ["Financial calculation", 12, 12, 2], ["Finance validation (Randy)", 12, 13, 2], ["Present results (WOr)", 13, 13, 2], ["Next-wave VO plan", 12, 13, 2],
   ];
-  const rowH = 0.21, ty = gy + 0.68;
+  const rowH = Math.min(0.24, 4.4 / tasks.length), ty = gy + 0.68;
   const pc = [K.teal, K.amber, K.navy];
   tasks.forEach(([t, a, b, p], i) => {
     const y = ty + i * rowH;
@@ -1366,31 +1522,45 @@ async function main() {
     s.addShape(S.DIAMOND, { x: gx + w * wk - 0.2, y: ty + tasks.length * rowH + 0.03, w: 0.2, h: 0.2, fill: { color: K.coral }, line: { color: K.white, width: 1 }, objectName: "WOr milestone W" + w });
   });
   txt(s, "◆ WOr leadership checkpoints (proposed W4, W8, W13)  ·  Durations are planning targets — confirm with cell leaders at kickoff", { x: 0.6, y: 6.78, w: 11.5, h: 0.26, fontSize: 10, color: K.slate, margin: 0 });
-  notes(s, `PURPOSE: The detailed 90-day deployment roadmap — the same plan for all three Geminis, run in parallel.
+  notes(s, `PURPOSE: The detailed 90-day ${AM ? "AM" : "VO"} roadmap — the same plan for all three Geminis, run in parallel.
   TIMING: 6 minutes.
-  DAYS 1–30 FOUNDATION: Confirm cell ownership; conduct machine assessments; collect baseline data; create safety maps; identify CILT points; establish defect registers; begin supervisor coaching (continues throughout).
-  DAYS 31–60 IMPLEMENTATION: Launch approved CILT standards; validate centerline parameters; train employees; implement defect handling; integrate PM and Quality; identify VO improvement opportunities; start small projects.
-  DAYS 61–90 SUSTAINMENT: Audit deployment; review defect closure; verify centerline adherence; compare performance to baseline; validate financial benefits; present results; establish the next-wave deployment plan.
-  MILESTONES: Red diamonds mark proposed WOr leadership checkpoints at the end of each phase (Weeks 4, 8, 13).
-  EDITABLE: Bars are standard PowerPoint shapes — drag to adjust once dates are confirmed. Add actual calendar dates under the week numbers after kickoff.
+  ${AM ? "DAYS 1–30 FOUNDATION: confirm cell ownership; machine assessments; safety maps; CILT points; defect registers; gather current settings, OEM manuals and PM records; begin supervisor coaching (continues throughout).\n  DAYS 31–60 IMPLEMENTATION: launch approved CILT; validate centerline parameters; train employees; implement defect handling; integrate PM and Quality; start cell improvement actions.\n  DAYS 61–90 SUSTAINMENT: audit deployment; review defect closure; verify centerline adherence; review AM metric trends; present results; plan the next wave." : "DAYS 1–30 FOUNDATION: confirm cell ownership; map Redzone data and reason codes; collect 4–8 weeks of baseline data; data-quality review; agree baseline and comparison period with Finance; begin supervisor coaching.\n  DAYS 31–60 IMPLEMENTATION: build loss Paretos; separate losses by owner (AM, PM, Quality, process, scheduling); prioritize; charter and start starter projects; track results weekly.\n  DAYS 61–90 SUSTAINMENT: sustainment checks across shifts and products; compare performance to baseline; financial calculation and Finance validation; present results; plan the next wave."}
+  MILESTONES: Red diamonds mark proposed WOr leadership checkpoints (Weeks 4, 8, 13).
+  EDITABLE: Bars are standard shapes — drag to adjust once dates are confirmed.
   CAUTION: This roadmap shows planned activities only. It does not present projected benefits as achieved results.`);
 
+  }
+  if (true) {
   // ======================= 41. WEEKLY MILESTONES =======================
   s = content("PART 9 · 90-DAY DEPLOYMENT ROADMAP", "Weekly milestones, owners and evidence");
-  const wm = [
+  const wm = AM ? [
     ["W1", "Kickoff; confirm cells, members, machine IDs, shifts", "Plant Leadership + CI", "Signed cell charter; contact list"],
-    ["W2", "Machine assessments; start baseline pull; safety-map walk", "Supervisors + Maintenance + EHS", "Assessment checklist; draft safety map"],
+    ["W2", "Machine assessments; safety-map walk; gather settings & PM records", "Supervisors + Maintenance + EHS", "Assessment checklist; draft safety map"],
     ["W3", "Hazard register; CILT point identification; defect register live", "Cell teams + EHS", "Hazard register; inspection-point map; register"],
-    ["W4", "Baseline agreed; safety maps approved; WOr #1", "Supervisor + CI + Finance", "Finance-reviewed baseline; approved maps"],
+    ["W4", "Safety maps approved; draft CILT cards; WOr #1", "Supervisor + EHS + CI", "Approved maps; draft CILT cards"],
     ["W5", "Launch approved CILT (daily / weekly); defect tagging live", "Supervisor + Production", "CILT checklists in use; tags in register"],
     ["W6", "Centerline parameter list & draft registers; PM/Quality links", "Maintenance + Quality", "Draft registers; work-order flow agreed"],
-    ["W7", "Training & competency checks; loss Pareto; select starter projects", "Supervisor + CI", "Training records; Pareto; project charters"],
+    ["W7", "Training & competency checks; first cell AM actions", "Supervisor + Maintenance", "Training records; action list"],
     ["W8", "Centerlines validated & posted; WOr #2", "Maintenance + Quality + Supervisor", "Validated registers; WOr deck"],
     ["W9", "Deployment audit #1; centerline adherence checks", "Supervisor + CI", "Audit results; adherence log"],
     ["W10", "Defect closure review; repeat-defect RCAs", "Cell teams", "Closure rate; RCA records"],
+    ["W11", "AM metric trend review (CILT, centerline, defects)", "CI + Supervisor", "AM dashboard"],
+    ["W12", "Deployment audit #2; next-wave AM draft", "Supervisor + CI", "Audit results; draft plan"],
+    ["W13", "Final WOr: AM status, risks, next-wave plan", "Supervisors", "WOr deck; approved next-wave plan"],
+  ] : [
+    ["W1", "Kickoff; confirm cells, members, Redzone line mapping", "Plant Leadership + CI", "Signed cell charter; data map"],
+    ["W2", "Pull 4–8 weeks of history; review reason codes", "CI + Supervisors", "Raw baseline extract; code list"],
+    ["W3", "Data-quality review; fill gaps from production records", "CI + Production + Maintenance", "Data-quality notes"],
+    ["W4", "Baseline & comparison period agreed with Finance; WOr #1", "Supervisor + CI + Finance", "Finance-reviewed baseline"],
+    ["W5", "Loss Paretos per Gemini; Six Big Losses split", "CI + Supervisor", "Pareto charts"],
+    ["W6", "Losses assigned by owner (AM/PM/Quality/process/scheduling)", "Cell teams", "Loss-owner map"],
+    ["W7", "Prioritization matrix; starter projects chartered", "Supervisor + CI", "Scored matrix; project charters"],
+    ["W8", "Projects under way; weekly tracking live; WOr #2", "Supervisors", "Tracker; WOr deck"],
+    ["W9", "Sustainment checks across shifts", "Supervisor + CI", "Shift comparison"],
+    ["W10", "Mid-point results review; adjust countermeasures", "Cell teams", "Review notes"],
     ["W11", "Performance vs baseline (comparable period)", "CI + Supervisor", "Before/after comparison"],
     ["W12", "Savings calculation & Finance review; next-wave draft", "CI + Finance (Randy)", "Finance validation sheet"],
-    ["W13", "Final WOr: results, risks, next-wave plan", "Supervisors", "WOr deck; approved next-wave plan"],
+    ["W13", "Final WOr: validated results, risks, next-wave plan", "Supervisors", "WOr deck; approved next-wave plan"],
   ];
   const wmData = [[hdr("Week"), hdr("Milestone"), hdr("Owner"), hdr("Evidence / deliverable")]].concat(wm.map((r, i) => {
     const ph = i < 4 ? K.teal : i < 8 ? K.amber : K.navy;
@@ -1404,8 +1574,10 @@ async function main() {
   PHASE COLORS: Teal = Foundation (W1–4), Amber = Implementation (W5–8), Navy = Sustainment (W9–13).
   EVIDENCE: Evidence is objective (a document, record, audit result or approved deck) — not "we talked about it."
   ADJUST: Owners and timing are proposed. Confirm at kickoff. If one cell falls behind, the CI Manager escalates to plant leadership rather than doing the work for the cell.
-  IMPORTANT: Week 11–12 comparisons and savings will reflect real measured results only; nothing in this plan presents projected benefits as achieved.`);
+  IMPORTANT: Results reviewed in Weeks 11–13 reflect real measured data only; nothing in this plan presents projected benefits as achieved.`);
 
+  }
+  if (AM) {
   // ======================= 42. HUDDLE =======================
   section("Daily Management & WOr");
   s = content("PART 10 · DAILY MANAGEMENT", "The daily huddle: nine topics, same order, every day");
@@ -1432,6 +1604,8 @@ async function main() {
   SUPERVISOR TIP: Ask before you tell. Let operators report CILT findings and defects — it builds ownership.
   ASK: "Which of these nine topics is missing from today's shift start-up meetings?"`);
 
+  }
+  if (AM) {
   // ======================= 43. SAMPLE HUDDLE =======================
   s = content("PART 10 · DAILY MANAGEMENT", "Sample five-minute huddle — Gemini cell, start of shift");
   const seg = [["0:00", 0.75, "Safety & food quality", K.coral], ["0:45", 1.0, "Machine & CILT", K.teal], ["1:45", 0.75, "Centerline & defects", K.blue], ["2:30", 1.25, "Biggest loss", K.amber], ["3:45", 0.75, "Today’s action", K.navy], ["4:30", 0.5, "Recognition", K.green]];
@@ -1470,6 +1644,8 @@ async function main() {
   • Close with specific recognition ("spotted a loose bracket during CILT") rather than generic praise ("good job").
   LIVE PRACTICE: Ask a volunteer supervisor to run the huddle with 4–5 participants acting as the team. Time it. Debrief: what kept it to five minutes?`);
 
+  }
+  if (AM) {
   // ======================= 44. COACHING EXERCISE =======================
   s = dark("INTERACTIVE EXERCISE · 15 MINUTES", "Coach, don’t just tell: a role-play");
   box(s, 0.6, 1.5, 5.8, 2.15, { fill: K.white });
@@ -1499,41 +1675,51 @@ async function main() {
   DEBRIEF QUESTIONS: In which round did the supervisor learn about the worn guide? Which approach would change behavior on the next shift when the supervisor isn't there? How does coaching connect to the neuroscience (active processing and retrieval)?
   KEY POINT: Telling is sometimes necessary — for an immediate safety risk, tell and stop the job. Coaching is for building capability and finding causes.`);
 
+  }
+  if (true) {
   // ======================= 45. WOr STRUCTURE =======================
+  section("Daily Management & WOr");
   s = content("PART 11 · WOr LEADERSHIP PRESENTATIONS", "WOr: every cell tells its story with the same structure");
-  const wor = [["FaIndustry", "Machine ownership"], ["FaUsers", "Team members"], ["FaChartBar", "Baseline performance"], ["FaMapMarkedAlt", "Safety Map status"], ["FaClipboardCheck", "CILT status"], ["FaSlidersH", "Centerline status"], ["FaTag", "Defect Handling status"], ["FaSearch", "Top losses"], ["FaTools", "Improvement actions"], ["FaCamera", "Before & after photos"], ["FaChartLine", "OEE & quality trends"], ["FaDollarSign", "Financial benefits (Finance-validated)"], ["FaExclamationTriangle", "Open risks"], ["FaFlag", "Next actions"]];
-  wor.forEach(([ic, t], i) => {
-    const x = 0.6 + (i % 7) * 1.75, y = 1.5 + Math.floor(i / 7) * 2.05;
-    box(s, x, y, 1.6, 1.85, { fill: i >= 3 && i <= 6 ? K.teal : K.light, tr: i >= 3 && i <= 6 ? 85 : 0 });
+  const wor = AM ? [["FaIndustry", "Machine ownership", 0], ["FaUsers", "Team members", 0], ["FaMapMarkedAlt", "Safety Map status", 1], ["FaClipboardCheck", "CILT status", 1], ["FaSlidersH", "Centerline status", 1], ["FaTag", "Defect Handling status", 1], ["FaTools", "Improvement actions", 0], ["FaCamera", "Before & after photos", 0], ["FaExclamationTriangle", "Open risks", 0], ["FaFlag", "Next actions", 0]]
+    : [["FaIndustry", "Machine ownership", 0], ["FaUsers", "Team members", 0], ["FaChartBar", "Baseline performance", 1], ["FaSearch", "Top losses", 1], ["FaTools", "Improvement actions", 0], ["FaCamera", "Before & after photos", 0], ["FaChartLine", "OEE & quality trends", 1], ["FaDollarSign", "Financial benefits (Finance-validated)", 1], ["FaExclamationTriangle", "Open risks", 0], ["FaFlag", "Next actions", 0]];
+  const wc = 5, ww = (12.1 - (wc - 1) * 0.15) / wc;
+  wor.forEach(([ic, t, hl], i) => {
+    const x = 0.6 + (i % wc) * (ww + 0.15), y = 1.5 + Math.floor(i / wc) * 2.05;
+    box(s, x, y, ww, 1.85, { fill: hl ? K.teal : K.light, tr: hl ? 85 : 0 });
     txt(s, String(i + 1).padStart(2, "0"), { x: x + 0.12, y: y + 0.1, w: 0.6, h: 0.3, fontSize: 12, bold: true, color: K.slate, margin: 0 });
-    iconOnly(s, ic, x + 0.55, y + 0.45, 0.5, HEX.navy);
-    txt(s, t, { x: x + 0.08, y: y + 1.05, w: 1.44, h: 0.75, fontSize: 11, bold: true, color: K.navy, align: "center", valign: "middle", margin: 0 });
+    iconOnly(s, ic, x + ww / 2 - 0.25, y + 0.45, 0.5, HEX.navy);
+    txt(s, t, { x: x + 0.08, y: y + 1.05, w: ww - 0.16, h: 0.75, fontSize: 13, bold: true, color: K.navy, align: "center", valign: "middle", margin: 0 });
   });
   box(s, 0.6, 5.7, 12.1, 1.1, { fill: K.navy });
   txt(s, [{ text: "Proposed cadence: ", options: { bold: true, color: K.amber } }, { text: "Weeks 4, 8 and 13 · 10 minutes per cell + 5 minutes Q&A · led by the supervisor, with team members presenting their own sections. ", options: { color: K.white } }, { text: "Goal: build analytical, communication and leadership capability.", options: { color: K.white, bold: true } }], { x: 0.85, y: 5.7, w: 11.7, h: 1.1, fontSize: 14, valign: "middle" });
-  notes(s, `PURPOSE: Introduce the standardized WOr leadership presentation used by each Gemini cell.
+  notes(s, `PURPOSE: Introduce the standardized WOr leadership presentation for the ${AM ? "AM" : "VO"} pillar.
   TIMING: 4 minutes.
-  NOTE ON THE TERM: "WOr" is used here as the site's name for the periodic leadership review. Confirm the expansion/definition used locally and keep the term consistent across all materials.
-  THE 14 ELEMENTS (always in this order): machine ownership; team members; baseline performance; Safety Map status; CILT status; Centerline status; Defect Handling status; top losses; improvement actions; before-and-after photos; OEE and quality trends; financial benefits (Finance-validated only); open risks; next actions. The four teal tiles are the four AM tools — every cell reports on all four.
-  CADENCE (proposed): End of each 30-day phase (Weeks 4, 8, 13); 10 minutes per cell plus 5 minutes of Q&A.
-  PURPOSE: The goal is to develop supervisors' analytical, communication and leadership capability — not to create a reporting burden. Encourage operators and technicians to present their own work.
-  LEADERSHIP BEHAVIOR: Ask questions that teach ("What did you learn?", "What help do you need?") rather than questions that blame.`);
+  NOTE ON THE TERM: "WOr" is the site's name for the periodic leadership review. Confirm the local definition and keep the term consistent.
+  THE 10 ELEMENTS (always in this order): ${wor.map((w) => w[1]).join("; ")}. Highlighted tiles are the ${AM ? "four AM tools — every cell reports on all four" : "VO measures — baseline, losses, trends and Finance-validated benefits"}.
+  CADENCE (proposed): end of each 30-day phase (Weeks 4, 8, 13); 10 minutes per cell plus 5 minutes Q&A.
+  PURPOSE: Develop supervisors' analytical, communication and leadership capability — not create a reporting burden.
+  ${VO ? "RULE: Only Finance-validated savings appear as results; estimates are labeled as estimates. Never present projected benefits as achieved." : "In a combined review with VO, append the VO section from the companion deck after element 6."}`);
 
+  }
+  if (true) {
   // ======================= 46. WOr TEMPLATE =======================
-  s = content("TEMPLATE · DUPLICATE FOR EACH CELL", "WOr cell report: Gemini [#]");
+  s = content("TEMPLATE · DUPLICATE FOR EACH CELL", AM ? "WOr AM cell report: Gemini [#]" : "WOr VO cell report: Gemini [#]");
   box(s, 0.6, 1.4, 12.1, 0.45, { fill: K.light });
   txt(s, "Cell: [  ]   ·   Gemini ID: [  ]   ·   Supervisor: [  ]   ·   Team — Prod: [  ]  Maint: [  ]  Qual: [  ]   ·   Period: [  ]   ·   Review #: [  ]", { x: 0.75, y: 1.4, w: 11.8, h: 0.45, fontSize: 11, color: K.navy, valign: "middle", margin: 0 });
-  [["Safety Map", "Draft / Approved"], ["CILT", "Compliance: [__]%"], ["Centerline", "Adherence: [__]%"], ["Defects", "Open [_] · Overdue [_] · Verified [_]"]].forEach(([h, v], i) => {
+  const tl = AM ? [["Safety Map", "Draft / Approved"], ["CILT", "Compliance: [__]%"], ["Centerline", "Adherence: [__]%"], ["Defects", "Open [_] · Overdue [_] · Verified [_]"]] : [["Baseline", "Agreed with Finance: Y / N"], ["Top loss", "[  ] — [__] min/week"], ["Projects", "Active [_] · Closed [_]"], ["Validated savings", "$[  ] (Finance)"]];
+  tl.forEach(([h, v], i) => {
     const x = 0.6 + i * 1.53;
-    box(s, x, 2.0, 1.43, 1.1, { fill: K.teal, tr: 85 });
+    box(s, x, 2.0, 1.43, 1.1, { fill: AM ? K.teal : K.amber, tr: 85 });
     txt(s, [{ text: h, options: { bold: true, color: K.navy, breakLine: true, fontSize: 12 } }, { text: v, options: { color: K.ink, fontSize: 10 } }], { x: x + 0.08, y: 2.05, w: 1.3, h: 1.0, margin: 0 });
   });
-  const kd = [[hdr("Metric"), hdr("Baseline"), hdr("Current"), hdr("Trend")]].concat(["OEE", "Unplanned downtime", "Minor stops", "Scrap & rework"].map((m) => [{ text: m, options: { bold: true, color: K.navy } }, "TBD", "TBD", "TBD"]));
+  const km = AM ? ["CILT compliance", "Centerline adherence", "Open / overdue defects", "Repeat abnormalities"] : ["OEE", "Unplanned downtime", "Minor stops", "Scrap & rework"];
+  const kd = [[hdr("Metric"), hdr("Baseline"), hdr("Current"), hdr("Trend")]].concat(km.map((m) => [{ text: m, options: { bold: true, color: K.navy } }, "TBD", "TBD", "TBD"]));
   s.addTable(kd, { x: 6.8, y: 2.0, w: 5.9, colW: [2.3, 1.2, 1.2, 1.2], rowH: 0.36, fontSize: 11, color: K.ink, fontFace: "Calibri", valign: "middle", border: { type: "solid", pt: 0.5, color: HEX.grid }, margin: 0.06 });
   const sect = (x, y, w, h, title, body, fill = K.light) => { box(s, x, y, w, h, { fill }); txt(s, [{ text: title, options: { bold: true, color: K.navy, breakLine: true, fontSize: 12 } }, { text: body, options: { color: K.slate, fontSize: 11 } }], { x: x + 0.12, y: y + 0.08, w: w - 0.24, h: h - 0.16, margin: 0 }); };
-  sect(0.6, 3.25, 2.95, 1.75, "Top 3 losses", "1. [  ]\n2. [  ]\n3. [  ]");
+  sect(0.6, 3.25, 2.95, 1.75, AM ? "Top 3 repeat abnormalities" : "Top 3 losses", "1. [  ]\n2. [  ]\n3. [  ]");
   sect(3.65, 3.25, 2.95, 1.75, "Improvement actions", "Action · owner · due · status");
-  sect(6.8, 4.0, 2.9, 1.4, "Financial benefits", "Finance-validated only (Randy). Estimates labeled as estimates.", K.amber);
+  if (AM) sect(6.8, 4.0, 2.9, 1.4, "Training & competency", "Operators verified on CILT / centerline / defect handling: [__]%");
+  else sect(6.8, 4.0, 2.9, 1.4, "Financial benefits", "Finance-validated only (Randy). Estimates labeled as estimates.");
   sect(9.8, 4.0, 2.9, 1.4, "Open risks", "Safety · quality · resource · schedule");
   sect(6.8, 5.55, 5.9, 1.25, "Next actions & help needed from leadership", "[  ]");
   [["BEFORE", 0.6], ["AFTER", 3.65]].forEach(([t, x]) => {
@@ -1541,20 +1727,20 @@ async function main() {
     iconOnly(s, "FaCamera", x + 1.25, 5.45, 0.45, HEX.slate);
     txt(s, t + " photo", { x, y: 6.0, w: 2.95, h: 0.4, fontSize: 11, bold: true, color: K.slate, align: "center", margin: 0 });
   });
-  notes(s, `PURPOSE: A fillable one-page WOr template for each Gemini cell.
+  notes(s, `PURPOSE: A fillable one-page WOr template for each Gemini cell (${AM ? "AM" : "VO"} pillar).
   TIMING: 3 minutes to explain; cells complete it before each WOr review.
-  HOW TO USE: Duplicate this slide for each cell (right-click the thumbnail → Duplicate Slide). Replace every [ ] and TBD with real, validated information. For a longer review, expand each section into its own slide following the 14-element order on the previous slide.
-  SECTIONS: header (cell, Gemini ID, supervisor, team, period); AM status tiles for all four tools; KPI table (baseline vs current vs trend); top 3 losses; improvement actions; before-and-after photos; financial benefits; open risks; next actions and help needed.
+  HOW TO USE: Duplicate this slide for each cell. Replace every [ ] and TBD with real, validated information.
   RULES:
-  • Financial benefits show only Finance-validated savings; any estimate must be labeled "estimate."
-  • Trends must use the agreed baseline and comparable periods.
-  • Photos must be taken safely and comply with site photography rules in production areas.
+  ${AM ? "• Status tiles cover all four AM tools — never skip one.\n  • 'Repeat abnormalities' are defects that return after closure; each needs an RCA." : "• Financial benefits show only Finance-validated savings; any estimate is labeled 'estimate'.\n  • Trends use the agreed baseline and comparable periods."}
+  • Photos must be taken safely and follow site photography rules in production areas.
   • Never present projected benefits as achieved results.`);
 
+  }
+  if (true) {
   // ======================= 47. EXEC DASHBOARD =======================
   section("Success Metrics & Close");
-  s = content("PART 12 · SUCCESS METRICS", "AM + VO executive dashboard — all three Geminis");
-  const tiles = [["OEE", "VO"], ["CILT compliance", "AM"], ["Centerline adherence", "AM"], ["Open/overdue defects", "AM"], ["Unplanned downtime", "VO"], ["Validated savings", "VO"]];
+  s = content("PART 12 · SUCCESS METRICS", AM ? "AM executive dashboard — all three Geminis" : "VO executive dashboard — all three Geminis");
+  const tiles = AM ? [["Safety maps approved", "AM"], ["CILT compliance", "AM"], ["Centerline adherence", "AM"], ["Open/overdue defects", "AM"], ["Verified closure", "AM"], ["Repeat abnormalities", "AM"]] : [["OEE", "VO"], ["Unplanned downtime", "VO"], ["Minor stops", "VO"], ["Changeover losses", "VO"], ["Scrap & rework", "VO"], ["Validated savings", "VO"]];
   for (let g = 0; g < 3; g++) {
     const x = 0.6 + g * 4.1;
     box(s, x, 1.45, 3.85, 0.5, { fill: K.navy, r: 0.08 });
@@ -1571,16 +1757,18 @@ async function main() {
     });
   }
   box(s, 0.6, 6.3, 12.1, 0.5, { fill: K.amber, tr: 80 });
-  txt(s, "All values and targets are TBD until the baseline is locked and leadership approves targets. Savings appear only after Finance (Randy) validation.", { x: 0.8, y: 6.3, w: 11.7, h: 0.5, fontSize: 12, bold: true, color: K.navy, valign: "middle", margin: 0 });
-  notes(s, `PURPOSE: The executive AM + VO dashboard template for all three Geminis.
+  txt(s, AM ? "All values and targets are TBD until AM deployment data is collected and leadership approves targets." : "All values and targets are TBD until the baseline is locked and leadership approves targets. Savings appear only after Finance (Randy) validation.", { x: 0.8, y: 6.3, w: 11.7, h: 0.5, fontSize: 12, bold: true, color: K.navy, valign: "middle", margin: 0 });
+  notes(s, `PURPOSE: The executive ${AM ? "AM" : "VO"} dashboard template for all three Geminis.
   TIMING: 3 minutes.
-  HOW IT WORKS: One column per Gemini. Six headline tiles per machine — three AM deployment indicators (CILT compliance, centerline adherence, open/overdue defects) and three VO performance indicators (OEE, unplanned downtime, validated savings). The small tag on each tile shows its pillar.
-  STATUS DOT: Gray = baseline pending. Once targets are approved, use green (on/above target), amber (within tolerance band), red (off target) — define the bands with leadership.
-  EDITABLE: Every tile is a text box. Update weekly from the KPI register (next slide) or link to a Redzone/Excel source as the site's reporting allows.
-  TARGETS: All targets are TBD until baseline data and leadership approval are available. No values are shown because no actual results exist yet.`);
+  HOW IT WORKS: One column per Gemini, six headline tiles per machine: ${tiles.map((t) => t[0]).join(", ")}.
+  STATUS DOT: Gray = baseline pending. Once targets are approved, use green / amber / red — define the bands with leadership.
+  EDITABLE: Every tile is a text box. Update weekly from the KPI register (next slide).
+  TARGETS: TBD until ${AM ? "deployment data is collected" : "baseline data is locked"} and leadership approves. No values are shown because no actual results exist yet.`);
 
+  }
+  if (true) {
   // ======================= 48. KPI REGISTER =======================
-  s = content("PART 12 · SUCCESS METRICS", "KPI register: AM deployment, VO performance, leadership");
+  s = content("PART 12 · SUCCESS METRICS", AM ? "KPI register: AM deployment and leadership metrics" : "KPI register: VO performance and leadership metrics");
   const kpis = [
     ["AM", "Safety maps approved", "Approved maps ÷ 3 Geminis", "Cell records", "Weekly"],
     ["AM", "CILT compliance", "Tasks completed on time ÷ tasks scheduled", "CILT checklists", "Daily"],
@@ -1602,25 +1790,28 @@ async function main() {
     ["Lead", "Supervisor-led projects", "Projects led and closed by supervisors", "Project tracker", "Monthly"],
     ["Lead", "Improvement sustainability", "Gains held for the agreed period", "WOr reviews", "Monthly"],
   ];
+  const kSel = kpis.filter((r) => (AM ? r[0] !== "VO" : r[0] === "VO" || ["Supervisor-led projects", "Improvement sustainability"].includes(r[1])));
   const pCol = { AM: K.teal, VO: K.amber, Lead: K.blue };
-  const kData = [[hdr("Pillar"), hdr("Metric"), hdr("Definition / calculation"), hdr("Source"), hdr("Frequency"), hdr("Target")]].concat(kpis.map((r) => [{ text: r[0], options: { bold: true, color: r[0] === "VO" ? K.navy : K.white, fill: { color: pCol[r[0]] }, align: "center" } }, { text: r[1], options: { bold: true, color: K.navy } }, r[2], r[3], r[4], { text: "TBD", options: { color: K.slate, align: "center" } }]));
-  s.addTable(kData, { x: 0.6, y: 1.4, w: 12.1, colW: [0.75, 2.45, 4.3, 2.4, 1.4, 0.8], rowH: 0.262, fontSize: 10, color: K.ink, fontFace: "Calibri", valign: "middle", border: { type: "solid", pt: 0.5, color: HEX.grid }, margin: [0.01, 0.06, 0.01, 0.06] });
+  const kData = [[hdr("Pillar"), hdr("Metric"), hdr("Definition / calculation"), hdr("Source"), hdr("Frequency"), hdr("Target")]].concat(kSel.map((r) => [{ text: r[0], options: { bold: true, color: r[0] === "VO" ? K.navy : K.white, fill: { color: pCol[r[0]] }, align: "center" } }, { text: r[1], options: { bold: true, color: K.navy } }, r[2], r[3], r[4], { text: "TBD", options: { color: K.slate, align: "center" } }]));
+  s.addTable(kData, { x: 0.6, y: 1.4, w: 12.1, colW: [0.75, 2.45, 4.3, 2.4, 1.4, 0.8], rowH: Math.min(0.4, 5.2 / (kSel.length + 1)), fontSize: kSel.length > 12 ? 11 : 12, color: K.ink, fontFace: "Calibri", valign: "middle", border: { type: "solid", pt: 0.5, color: HEX.grid }, margin: [0.01, 0.06, 0.01, 0.06] });
   notes(s, `PURPOSE: Define every KPI so all three cells measure the same way.
   TIMING: 4 minutes (leadership); reference document afterwards.
-  AM DEPLOYMENT METRICS: safety maps approved; CILT compliance; centerline adherence; open equipment defects; overdue defects; verified defect closure; repeat abnormalities.
-  VO PERFORMANCE METRICS: OEE; unplanned downtime; minor stops; changeover losses; scrap and rework; production productivity; financial savings validated by Finance.
-  LEADERSHIP METRICS: huddle completion; employee engagement; training competency; supervisor-led projects; improvement sustainability.
-  DEFINITIONS: Proposed — confirm with CI, Finance and Quality, and match Redzone's calculation logic for OEE and stops (e.g., the threshold that defines a "minor stop").
-  TARGETS: TBD until baseline data and leadership approval are available.
-  CAUTION: Leading indicators (AM and leadership metrics) usually move before lagging results (OEE, savings). Expect that sequence.`);
+  ${AM ? "AM DEPLOYMENT METRICS: safety maps approved; CILT compliance; centerline adherence; open equipment defects; overdue defects; verified defect closure; repeat abnormalities.\n  LEADERSHIP METRICS: huddle completion; employee engagement; training competency; supervisor-led projects; improvement sustainability.\n  DEFINITIONS: Proposed — confirm with CI, Maintenance and Quality.\n  TARGETS: TBD until deployment data and leadership approval are available.\n  NOTE: Performance outcomes (OEE, downtime, scrap, savings) are tracked in the VO companion deck." : "VO PERFORMANCE METRICS: OEE; unplanned downtime; minor stops; changeover losses; scrap and rework; production productivity; financial savings validated by Finance.\n  LEADERSHIP METRICS: supervisor-led projects; improvement sustainability.\n  DEFINITIONS: Proposed — confirm with CI, Finance and Quality, and match Redzone's calculation logic for OEE and stops (e.g., the threshold that defines a minor stop).\n  TARGETS: TBD until baseline data and leadership approval are available."}`);
 
+  }
+  if (true) {
   // ======================= 49. SITE DATA NEEDED =======================
   s = content("FINALIZING THE DEPLOYMENT", "Site-specific data still needed to finalize deployment");
-  const need = [
+  const need = AM ? [
     ["FaCogs", "Equipment & safety", K.navy, ["Confirmed Gemini machine IDs / asset numbers", "Real Gemini photos and layout drawings", "OEM manuals and specifications", "Existing PM tasks and CMMS records", "LOTO procedures and energy sources per machine", "Current guarding / interlock status"]],
     ["FaUsers", "People & organization", K.teal, ["Supervisor leader for each cell", "Production, Maintenance, Quality members", "Shift coverage per cell", "EHS contact for approvals", "Training schedule windows", "Local definition of “WOr” review"]],
+    ["FaSlidersH", "Standards & settings", K.amber, ["Existing centerline / settings documentation", "Current SOPs and sanitation procedures", "Food-grade lubricant requirements", "CMMS work-order request process", "Existing tagging color standard", "Site severity & response-time standards"]],
+    ["FaShieldAlt", "Quality & brand", K.blue, ["Quality specs for Gemini products", "Food-safety controls linked to the Gemini", "Product disposition procedure", "Approved C.H. Guenther / Future Foods brand assets", "Training & competency record format", "Photography rules in production areas"]],
+  ] : [
+    ["FaUsers", "People & organization", K.teal, ["Supervisor leader for each cell", "Production, Maintenance, Quality members", "Shift coverage per cell", "Finance (Randy) review cadence", "CI coaching capacity", "Local definition of “WOr” review"]],
     ["FaDatabase", "Data & performance", K.amber, ["Redzone line / asset mapping", "4–8 weeks of baseline data per Gemini", "Downtime reason codes & data-quality review", "Product mix and changeover matrix", "Labor hours by line and shift", "Agreed comparison period"]],
-    ["FaBalanceScale", "Standards, finance & brand", K.blue, ["Existing centerline / settings documentation", "Quality specs and food-safety controls for Gemini products", "Site severity & response-time standards", "Finance costing assumptions (Randy)", "Approved C.H. Guenther / Future Foods brand assets", "Existing tagging color standard"]],
+    ["FaDollarSign", "Finance assumptions", K.green, ["Cost basis for downtime hours", "Scrap & rework cost basis", "Labor rates and overtime rules", "Annualization rules for recurring benefits", "Cost-avoidance reporting rules", "Savings-reporting format"]],
+    ["FaClipboardList", "Operations records", K.blue, ["Production plan vs actual records", "Maintenance loss records", "Quality hold, scrap & rework records", "List of existing improvement projects (avoid double-counting)", "Changeover standards & times", "Approved brand assets"]],
   ];
   need.forEach(([ic, h, col, items], i) => {
     const x = 0.6 + i * 3.07;
@@ -1633,37 +1824,35 @@ async function main() {
       txt(s, t, { x: x + 0.55, y, w: 2.25, h: 0.65, fontSize: 12, color: K.ink, margin: 0 });
     });
   });
-  notes(s, `PURPOSE: List the site-specific data still needed to finalize the deployment. Nothing on this list has been assumed or invented in this deck.
+  notes(s, `PURPOSE: List the site-specific data still needed to finalize the ${AM ? "AM" : "VO"} deployment. Nothing on this list has been assumed or invented in this deck.
   TIMING: 3 minutes; assign an owner and due date to each item at kickoff.
-  EQUIPMENT & SAFETY: Machine IDs and asset numbers; real photos and layouts (to replace illustrative visuals on the Safety Map, CILT card and dashboard); OEM manuals; existing PM tasks and CMMS history; LOTO procedures and energy sources; guarding/interlock status.
-  PEOPLE: Supervisor leader per cell; cross-functional members; shift coverage; EHS contact; training windows; the local definition of "WOr."
-  DATA: Redzone mapping; 4–8 weeks of baseline data; downtime reason codes and their data quality; product mix and changeover matrix; labor hours; agreed comparison period.
-  STANDARDS & FINANCE: Existing centerline or settings documentation; quality specifications and food-safety controls; site severity/response-time standards; Finance costing assumptions; approved brand assets; existing tag color standard.
-  ALSO NEEDED TO FINISH THIS DECK: The previous PowerPoint referenced as the foundation and the brand reference artwork were not available when this version was built. Supply them to merge any additional leadership-development, neuroscience, productivity or financial-validation content and to apply official branding.`);
+  ${need.map((n) => n[1].toUpperCase() + ": " + n[3].join("; ") + ".").join("\n  ")}
+  ALSO NEEDED TO FINISH THIS DECK: the previous PowerPoint referenced as the foundation and the brand reference artwork were not available when this version was built.`);
 
+  }
+  if (true) {
   // ======================= 50. CLOSING =======================
   s = pres.addSlide({ masterName: "CLOSING", sectionTitle: curSection });
   s.addText("THREE MACHINES. THREE TEAMS. ONE CULTURE OF OWNERSHIP.", { placeholder: "title" });
-  txt(s, "We are not asking supervisors to do more paperwork. We are giving them the tools, knowledge, and ownership to make their machines safer, more reliable, and more productive.", { x: 1.4, y: 2.45, w: 10.5, h: 1.1, fontSize: 18, color: K.light, align: "center", margin: 0 });
-  [["FaCogs", "Know your machine"], ["FaClipboardCheck", "Own your standards"], ["FaChartLine", "Improve every day"]].forEach(([ic, t], i) => {
+  txt(s, AM ? "We are not asking supervisors to do more paperwork. We are giving them the tools, knowledge, and ownership to make their machines safer, more reliable, and more productive." : "We are not asking supervisors to do more paperwork. We are giving them the data, methods, and ownership to find the biggest losses, fix what matters most, and prove the results.", { x: 1.4, y: 2.45, w: 10.5, h: 1.1, fontSize: 18, color: K.light, align: "center", margin: 0 });
+  (AM ? [["FaCogs", "Know your machine"], ["FaClipboardCheck", "Own your standards"], ["FaChartLine", "Improve every day"]] : [["FaSearch", "Know your losses"], ["FaBullseye", "Fix what matters most"], ["FaBalanceScale", "Prove it, then sustain it"]]).forEach(([ic, t], i) => {
     const x = 1.15 + i * 3.85;
     box(s, x, 3.95, 3.35, 2.55, { fill: K.white, tr: 90 });
     iconCircle(s, ic, x + 1.17, 4.15, 1.0, K.teal);
     txt(s, String(i + 1), { x: x + 0.2, y: 4.1, w: 0.6, h: 0.6, fontSize: 28, bold: true, color: K.amber, margin: 0 });
     txt(s, t, { x: x + 0.1, y: 5.3, w: 3.15, h: 0.8, fontSize: 22, bold: true, color: K.white, align: "center", valign: "middle", margin: 0 });
   });
-  txt(s, "C.H. Guenther & Son — Duncanville  ·  Gemini Pilot: Autonomous Maintenance + Value Optimization", { x: 0.7, y: 6.85, w: 11.9, h: 0.35, fontSize: 11, color: K.light, align: "center", margin: 0 });
+  txt(s, "C.H. Guenther & Son — Duncanville  ·  Gemini Pilot: " + PILLAR, { x: 0.7, y: 6.85, w: 11.9, h: 0.35, fontSize: 11, color: K.light, align: "center", margin: 0 });
   notes(s, `PURPOSE: Close with energy and commitment.
   TIMING: 3 minutes.
   SAY: "Three machines. Three teams. One culture of ownership." Pause.
-  READ THE MESSAGE: "We are not asking supervisors to do more paperwork. We are giving them the tools, knowledge, and ownership to make their machines safer, more reliable, and more productive."
+  READ THE MESSAGE on the slide aloud.
   THREE COMMITMENTS — ask the room to say them together:
-  1. Know your machine — its hazards, its normal condition, its centerline.
-  2. Own your standards — CILT, centerlines, defect handling, every shift.
-  3. Improve every day — one loss, one action, one owner at every huddle.
+  ${AM ? "1. Know your machine — its hazards, its normal condition, its centerline.\n  2. Own your standards — CILT, centerlines, defect handling, every shift.\n  3. Improve every day — one abnormality, one action, one owner at every huddle." : "1. Know your losses — a credible baseline and Pareto for your Gemini.\n  2. Fix what matters most — safety gate first, then impact versus ease.\n  3. Prove it, then sustain it — Finance-validated, across shifts and products."}
   CALL BACK: Refer to the flip chart from slide 2 ("What would be different if every operator owned their machine?") — "That's what we're building."
-  NEXT STEPS: Week 1 kickoff actions — confirm cells, members, machine IDs and shift coverage; schedule safety-map walks; start the baseline data pull.`);
+  NEXT STEPS: ${AM ? "Week 1 kickoff actions — confirm cells, members, machine IDs and shift coverage; schedule safety-map walks." : "Week 1 kickoff actions — confirm cells and members; map Redzone data; start the baseline data pull; book the baseline review with Finance."}`);
 
+  }
   await pres.writeFile({ fileName: OUT });
   await applyTheme(OUT, THEME);
   console.log("wrote", OUT);
