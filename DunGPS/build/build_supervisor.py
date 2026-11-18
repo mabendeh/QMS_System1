@@ -1,4 +1,4 @@
-"""Builds CHG_Supervisor_Productivity_Program.xlsx (production) and a DEMO version.
+"""Builds CHG_Supervisor_Productivity_Project_Tracker.xlsx (production) and a DEMO version.
 
 Supervisors pick improvement projects (5S, standard work, SMED, problem solving, ...) from a
 CI project library; progress is tracked through 5 standard milestones with coach verification.
@@ -483,7 +483,7 @@ def build_dash(wb, sh, demo, lc):
     ws = sh[S_DASH]
     CF = qs(sh[S_CFG])
     CA = qs(sh[S_CALC])
-    title_band(ws, "Supervisor Productivity Program — Dashboard", "", 18, legend=False)
+    title_band(ws, "Supervisor Productivity Project Tracker — Dashboard", "", 18, legend=False)
     ws["B3"] = ('="Status as of "&TEXT(sp_AsOf,"dd-mmm-yyyy")&"  ·  Period from "&TEXT(sp_Start,"dd-mmm-yy")&"  ·  Target: "&sp_Target&" verified project(s) per supervisor  ·  Completion rate = verified projects ÷ assigned projects"'
                 + ('&"  ·  DEMONSTRATION DATA"' if demo else ""))
     for i, w in enumerate([2, 22, 15, 7, 9, 9, 9, 8, 10, 11, 10, 10, 9, 10, 10, 10, 12, 12], 1):
@@ -840,6 +840,6 @@ def demo_5s(as_of):
 
 if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else "."
-    build(False, f"{out}/CHG_Supervisor_Productivity_Program.xlsx")
-    build(True, f"{out}/CHG_Supervisor_Productivity_Program_DEMO.xlsx")
+    build(False, f"{out}/CHG_Supervisor_Productivity_Project_Tracker.xlsx")
+    build(True, f"{out}/CHG_Supervisor_Productivity_Project_Tracker_DEMO.xlsx")
     print("built")

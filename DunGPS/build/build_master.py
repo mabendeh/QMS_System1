@@ -32,7 +32,7 @@ NPIL = 12  # pillar capacity on dashboards
 SOURCE_DOC = "GPS_Pillar_Bronze_Level_Requirements.xlsx (CHG, uploaded 18-Nov-26)"
 
 # ---- Official Bronze criteria: imported verbatim from the CHG source document ----
-BRONZE = {
+_BRONZE_SRC = {
     "AM": ["Establish CILs, Centerlines, and defect handling.  Operator training",
            "Deep clean on selected asset(s)", "Creation of LOTO and Safety Maps"],
     "PM": ["Part Room 2S", "CMMS-Limble deployment or proficiency with current system",
@@ -52,6 +52,7 @@ BRONZE = {
     "SC": ["PONC related process", "SC process governance and gap analysis",
            "Procurement process governance and gap analysis"],
 }
+BRONZE = {k: _BRONZE_SRC[k] for k in ["LEAD", "EHS", "FSQ", "AM", "PM", "VO", "E&T", "IM", "SC"]}
 # CI-recommended evidence (NOT official CHG evidence requirements) – shown in a clearly labelled column
 SUGGEST = {
     "AM": ["CIL sheets, centerline standards, defect tag log, operator training sign-off per asset",
@@ -83,18 +84,31 @@ SUGGEST = {
            "Procurement governance gap assessment and action plan"],
 }
 
-PILLARS = [  # code, name (expansion = CI assumption to confirm), Teams folder, in Bronze source
+PILLARS = [  # code, official name (CHG GPS poster "How the 9 GPS (TPM) pillars work together"), Teams folder, in Bronze source
+    ("LEAD", "Leadership", "LEAD", "Yes"),
+    ("EHS", "Environmental, Health & Safety", "EHS", "Yes"),
+    ("FSQ", "Food Safety & Quality", "FSQ", "Yes"),
     ("AM", "Autonomous Maintenance", "AM", "Yes"),
     ("PM", "Planned Maintenance", "PM", "Yes"),
-    ("FSQ", "Food Safety & Quality", "FSQ", "Yes"),
-    ("EHS", "Environment, Health & Safety", "EHS", "Yes"),
-    ("LEAD", "Leadership", "LEAD", "Yes"),
-    ("E&T", "Education & Training", "E&T", "Yes"),
     ("VO", "Value Optimization", "VO", "Yes"),
-    ("IM", "IM – full name to be confirmed", "IM", "Yes"),
+    ("E&T", "Education & Training", "E&T", "Yes"),
+    ("IM", "Initiative Management", "IM", "Yes"),
     ("SC", "Supply Chain", "SC", "Yes"),
-    ("EEM", "Early Equipment Management", "EEM", "No – optional"),
 ]
+LAYER = {"LEAD": "Foundation", "EHS": "Foundation", "FSQ": "Foundation", "AM": "Equipment Focus",
+         "PM": "Equipment Focus", "VO": "Equipment Focus", "E&T": "Capability & Governance",
+         "IM": "Capability & Governance", "SC": "Capability & Governance"}
+PURPOSE = {  # key takeaway per pillar, from the CHG GPS poster
+    "LEAD": "Creates accountability and drives execution",
+    "EHS": "Creates stable, risk-free conditions",
+    "FSQ": "Ensures the stable asset produces good product",
+    "AM": "Owns CIL, maintenance and inspects for abnormalities",
+    "PM": "Fixes and prevents equipment failures",
+    "VO": "Identifies losses (LE) and eliminates the root cause (FI)",
+    "E&T": "Builds the skills to execute standards",
+    "IM": "Ensures the right initiatives get done",
+    "SC": "Aligns reliability with customer demand",
+}
 LISTS = [  # header, key, values, system-controlled?
     ("Deployment Phase", "Phase", ["0 - Launch & Readiness", "1 - Bronze", "2 - Silver", "3 - Gold", "4 - Sustain"], False),
     ("Task Status", "Status", ["Not Started", "In Progress", "On Hold", "Complete"], True),
@@ -237,10 +251,8 @@ def build(demo, path):
             c.border = BORDER
     for j, w in enumerate([10, 30, 22, 14, 30, 14]):
         ws.column_dimensions[L(pc + j)].width = w
-    ws.cell(CFG_LIST_ROW0 + 7, pc + 1).comment = Comment(
-        "'IM' is listed in the CHG Bronze source without a full name. Confirm the official pillar name.", "DunGPS")
-    ws.cell(5, pc + 1).comment = Comment("Pillar name expansions are CI assumptions based on standard TPM/GPS "
-                                         "naming. Confirm against CHG documentation.", "DunGPS")
+    ws.cell(5, pc + 1).comment = Comment("Official names and order from the CHG GPS poster "
+                                         "'How the 9 GPS (TPM) pillars work together'.", "DunGPS")
     rng = lambda col: f"{qs(ws)}!${L(col)}${CFG_LIST_ROW0}:${L(col)}${CFG_LIST_ROWN}"
     define(wb, "cfg_PillarCode", rng(pc))
     define(wb, "cfg_PillarName", rng(pc + 1))
@@ -1945,7 +1957,7 @@ def build_instructions(wb, sh, demo):
         ("Status date", "Uses TODAY() unless 'Status date override' is set on the Configuration sheet."),
         ("Recalculation", "Automatic. If numbers look stale press F9."),
         ("H", "INFORMATION REQUIRED FROM CHG TO CONFIGURE THE OFFICIAL SYSTEM"),
-        ("1. Official pillar names", "Full name for 'IM' and confirmation of AM, PM, FSQ, EHS, LEAD, E&T, VO, SC expansions; whether EEM is in scope."),
+        ("1. Pillar names", "RESOLVED – the 9 official pillars (LEAD, EHS, FSQ, AM, PM, VO, E&T, IM = Initiative Management, SC) are taken from the CHG GPS poster."),
         ("2. Bronze criteria detail", "For each of the 32 criteria: mandatory vs optional, acceptance criteria, required evidence (official), verifier and any approved exceptions (e.g. PM org structure)."),
         ("3. Silver / Gold criteria", "Requirements for later levels so phases 2–4 can be loaded."),
         ("4. Owners", "Names, departments, positions, shifts, emails and pillar responsibilities; pillar leads, verifiers and escalation owners."),

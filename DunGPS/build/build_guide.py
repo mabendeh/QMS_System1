@@ -68,10 +68,11 @@ def build(out):
     # cover
     s += [Spacer(1, 1.2 * inch), P("DunGPS Pillar Deployment<br/>&amp; Performance Dashboard", "title"), Spacer(1, 8),
           P("User Guide · C.H. Guenther &amp; Son — Duncanville", "sub"), Spacer(1, 20),
-          P("Two Excel workbooks – no macros, Excel 2010+ / Excel for the web:", "b"),
+          P("Three separate Excel workbooks – no macros, Excel 2010+ / Excel for the web:", "b"),
           tbl([["File", "Purpose"],
-               ["CHG_DunGPS_Deployment_Master.xlsx", "TPM / DunGPS pillar deployment management: tracker, gaps, Bronze Star readiness, process matrix, VO projects, evidence register, executive &amp; management-review dashboards."],
-               ["CHG_Supervisor_Productivity_Program.xlsx", "Supervisor improvement program: supervisors choose projects (5S, standard work, SMED, problem solving…) from a library; 5-milestone tracking, coach verification, scorecard and gaps dashboard."],
+               ["CHG_Bronze_Level_Tracker.xlsx  (START HERE)", "Simple Bronze tracker: the 32 official requirements, one row each, in GPS pillar order (LEAD, EHS, FSQ, AM, PM, VO, E&amp;T, IM, SC). Owner dropdown, status, % complete, evidence link, verified? and a one-page dashboard by pillar and by the 3 GPS layers."],
+               ["CHG_DunGPS_Deployment_Master.xlsx", "Full management system (optional, for deeper deployment control): tracker, gaps, Bronze Star readiness, process matrix, VO projects, evidence register, executive &amp; management-review dashboards."],
+               ["CHG_Supervisor_Productivity_Project_Tracker.xlsx", "Separate supervisor project tracker: supervisors choose projects (5S, standard work, SMED, problem solving…) from a library; 5-milestone tracking, coach verification, scorecard and gaps dashboard."],
                ["*_DEMO.xlsx versions", "Same system loaded with clearly labelled fictitious data, used for testing and training. Never use for decisions."]],
               [3.0 * inch, W - 3.0 * inch]),
           Spacer(1, 16),
@@ -79,11 +80,22 @@ def build(out):
           P("Official content loaded: the 9 pillars and 32 Bronze Level requirements from <i>GPS_Pillar_Bronze_Level_Requirements.xlsx</i>, imported word for word. "
             "Nothing else is presented as official CHG content. No owners, dates or savings have been invented.", "s"),
           PageBreak()]
+    s += [P("Bronze Level Tracker – the simple way to run Bronze", "h1"),
+          tbl([["Step", "What to do"],
+               ["1. Owners", "Owners sheet: type each person once (Active? = Yes). They appear in every Owner / Verified By dropdown."],
+               ["2. Assign", "Bronze Tracker: choose Owner, Start Date and Due Date for each requirement."],
+               ["3. Update weekly", "Status, % Complete, Gap / What's Missing, Next Step, Last Updated."],
+               ["4. Prove it", "Status = Complete and paste the Teams evidence link (Teams → DunGPS → General → Shared → pillar)."],
+               ["5. Verify", "Verifier sets Verified? = Yes. Only then is the requirement Done."],
+               ["Health colours", "Done (green) · On Track (green) · Needs Verification (amber) · At Risk – due within 14 days and under 75% (amber) · Overdue (red) · Not Started (gray)."],
+               ["Dashboard", "Bronze-ready banner, % done, average progress, counts, progress by pillar, the 3 GPS layers (Foundation · Equipment Focus · Capability &amp; Governance), needs-attention list, owner summary, charts. Prints on one page."]],
+              [1.3 * inch, W - 1.3 * inch]),
+          PageBreak(), P("Bronze Level Tracker – dashboard", "h1"), img("bronze.png", W * 0.48), PageBreak()]
     # 1 quick start
     s += [P("1. Quick start (first 30 minutes)", "h1"),
           tbl([["Step", "Where", "What to do"],
                ["1", "Owner Directory", "Enter every person who will own, support, verify or escalate (name, department, position, shift, pillar, Active, email). They appear in all owner dropdowns immediately."],
-               ["2", "Configuration", "Confirm pillar names (IM full name), pillar leads, Teams sub-folders, RAG thresholds and the status-date setting. Add or edit areas, phases and categories at the end of each list."],
+               ["2", "Configuration", "Assign pillar leads, Teams sub-folders, RAG thresholds and the status-date setting. Add or edit areas, phases and categories at the end of each list."],
                ["3", "Pillar Deployment Tracker", "Each official Bronze requirement is pre-loaded as one task (T-AM-01 …). Break them into steps as needed (add rows), then set Owner, Approver/Verifier, Start and Target dates, and Evidence Required."],
                ["4", "Bronze Star Readiness", "Assign a Responsible Owner and Due Date per criterion. Enter CHG's official evidence requirement where provided. The 'Suggested Evidence' column is a CI recommendation only."],
                ["5", "Process Deployment Matrix", "Add equipment/shift rows per area. Mark each element N/A, Not Started, In Progress, Implemented or Verified. Nothing is assumed to apply (default Not Assessed)."],
@@ -150,7 +162,7 @@ def build(out):
               [0.8 * inch, (W - 0.8 * inch) / 2, (W - 0.8 * inch) / 2]),
           PageBreak()]
     # 7 supervisor program
-    s += [P("7. Supervisor Productivity Program", "h1"),
+    s += [P("7. Supervisor Productivity Project Tracker (separate file)", "h1"),
           tbl([["Step", "What to do"],
                ["Roster", "Enter supervisors (In Program? = Yes), managers/coaches and Finance."],
                ["Choose", "Project Assignments → select Supervisor and a Project Code. Name, category, pillar, KPI, duration and milestone definitions fill in from the Project Library (24 CI-recommended project types: 5S, 5 Why/A3, standard work, CIL, centerlines, SMED, Redzone loss reduction, FIT, SPIOC, giveaway, sanitation time, skill matrix, leader standard work …)."],
@@ -168,7 +180,7 @@ def build(out):
             "• <b>Validation performed:</b> every formula recalculated with zero errors; completion, overdue, gap, Bronze and scorecard results independently recomputed and matched on the demo data; zero-denominator, N/A, optional, missing owner, missing evidence, inactive owner, duplicate ID, overdue and new-row cases tested; filters tested.", "b"),
           P("9. Information required from CHG", "h1"),
           tbl([["#", "Item", "Why it is needed"],
-               ["1", "Official pillar names (full name of 'IM'; confirm AM, PM, FSQ, EHS, LEAD, E&amp;T, VO, SC) and whether EEM is in scope", "Pillar labels on all dashboards"],
+               ["1", "Pillar names – RESOLVED from the CHG GPS poster (IM = Initiative Management)", "–"],
                ["2", "Per Bronze criterion: mandatory/optional, acceptance criteria, official evidence, verifier, approved exceptions", "Readiness logic and evidence columns"],
                ["3", "Silver and Gold criteria", "Load deployment phases 2–4"],
                ["4", "Owner names, departments, positions, shifts, emails, pillar leads, verifiers, escalation owners", "Owner dropdowns and accountability (none invented)"],

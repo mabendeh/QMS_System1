@@ -2,7 +2,7 @@
 
 Nothing below has been invented in the production workbooks; the fields are blank or marked "to confirm".
 
-1. **Official pillar names.** Full name of **IM**; confirm the expansions of AM, PM, FSQ, EHS, LEAD, E&T, VO and SC; confirm whether EEM (Early Equipment Management) is in scope. The source file lists codes only.
+1. **Pillar names – RESOLVED.** Taken from the CHG GPS poster: 1 LEAD Leadership · 2 EHS Environmental, Health & Safety · 3 FSQ Food Safety & Quality · 4 AM Autonomous Maintenance · 5 PM Planned Maintenance · 6 VO Value Optimization · 7 E&T Education & Training · 8 IM Initiative Management · 9 SC Supply Chain.
 2. **Bronze criteria detail.** For each of the 32 criteria: mandatory or optional, acceptance criteria, official required evidence, who verifies, and approved exceptions (e.g. PM maintenance org structure "except for approved exceptions").
 3. **Silver and Gold criteria**, to load deployment phases 2–4.
 4. **Owners.** Names, departments, positions, shifts, emails and pillar responsibilities, plus pillar leads, approvers/verifiers and escalation owners.
