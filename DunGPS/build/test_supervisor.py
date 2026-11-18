@@ -13,7 +13,7 @@ rows = [r for r in rows if r["Supervisor"] and r["Project Code (select)"] and r[
 W = [0.15, 0.2, 0.3, 0.2, 0.15]
 def ms(r): return sum(w * (1 if r[f"M{j+1}"] == "Done" else 0.5 if r[f"M{j+1}"] == "In Progress" else 0) for j, w in enumerate(W))
 def ver(r): return (r["Status"] == "Complete" and all(r[f"M{j}"] == "Done" for j in range(1, 6))
-                    and r["Coach Verification"] == "Verified" and bool(r["Evidence Link"]))
+                    and r["Coach Verification"] == "Verified" and bool(r["Evidence Link (paste Teams link)"]))
 for r in rows:
     check(f"{r['Assignment ID']} milestone%", r["Milestone %"], ms(r))
     check(f"{r['Assignment ID']} verified", r["Verified (1/0)"], 1 if ver(r) else 0)

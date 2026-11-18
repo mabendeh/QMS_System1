@@ -155,7 +155,9 @@ LISTS = [
                                     "Management support / decision", "Communication", "Other"], False),
     ("Support Needed From", "Support", ["Maintenance", "Engineering", "Quality / FSQ", "EHS", "HR / Training",
                                         "Plant Leadership", "Supply Chain", "IT / Systems", "Finance"], False),
-    ("Pillar", "Pillar", ["AM", "PM", "FSQ", "EHS", "LEAD", "E&T", "VO", "IM", "SC"], False),
+    ("Pillar", "Pillar", ["LEAD", "EHS", "FSQ", "AM", "PM", "VO", "E&T", "IM", "SC"], False),
+    ("Status (no evidence yet)", "StatusNE", ["Not Started", "In Progress", "On Hold", "Cancelled"], True),
+    ("Verification (no evidence yet)", "VerifNE", ["Not Submitted", "Rejected - Rework"], True),
 ]
 R0, RN = 6, 55
 
@@ -196,6 +198,9 @@ def build(demo, path):
         ("sp_YellowTol", "Yellow tolerance (pts behind plan)", 0.25, PCT, ""),
         ("sp_DueSoon", "Due-soon window (days)", 14, "0", ""),
         ("sp_5STarget", "5S audit target score", 0.80, PCT, "Score = total points ÷ 25."),
+        ("sp_EvidFolder", "Evidence folder – Teams/SharePoint URL",
+         "https://example.sharepoint.com/sites/DunGPS/Shared%20Documents/General/Shared/Supervisor%20Projects" if demo else None,
+         None, "Opened by the 'Upload ↗' link on each project row."),
     ]
     r = 6
     for nm, lab, val, fmt, note in params:
@@ -306,7 +311,8 @@ def build(demo, path):
         dict(key="EffTarget", header="Effective Target", width=10, calc=True, fmt=DATE,
              formula='=IF(ISNUMBER({Target}),{Target},IF(AND(ISNUMBER({Start}),ISNUMBER({Weeks})),{Start}+7*{Weeks},""))'),
         dict(key="Actual", header="Actual Completion", width=10, dv="date", fmt=DATE),
-        dict(key="Status", header="Status", width=11, dv="sl_Status", default="Not Started"),
+        dict(key="Status", header="Status", width=11, default="Not Started",
+             note="'Complete' only appears after an Evidence Link is pasted in this row."),
     ]
     for j in range(1, 6):
         asp.append(dict(key=f"M{j}", header=f"M{j}", width=9, dv="sl_MS", default="Not Started", align="center"))
@@ -325,9 +331,13 @@ def build(demo, path):
         dict(key="EstSav", header="Est. Savings ($/yr)", width=10, fmt="$#,##0;($#,##0);-", dv="num"),
         dict(key="VerSav", header="Verified Savings ($/yr)", width=10, fmt="$#,##0;($#,##0);-", dv="num"),
         dict(key="FinOK", header="Finance Approved?", width=8, dv="sl_YesNo", default="No"),
-        dict(key="Evid", header="Evidence Link", width=20),
+        dict(key="Upload", header="Upload Evidence", width=10, calc=True,
+             formula='=IF({Code}="","",IF(sp_EvidFolder<>"",HYPERLINK(sp_EvidFolder,"Upload ↗"),"Set folder in Lists & Settings"))'),
+        dict(key="Evid", header="Evidence Link (paste Teams link)", width=22,
+             note="1) Click Upload ↗  2) save before/after photos, data, SOP in Teams  3) Copy link  4) paste here."),
         dict(key="Open", header="Open", width=7, calc=True, formula='=IF({Evid}="","",HYPERLINK({Evid},"Open ↗"))'),
-        dict(key="Verif", header="Coach Verification", width=14, dv="sl_Verif", default="Not Submitted"),
+        dict(key="Verif", header="Coach Verification", width=14, default="Not Submitted",
+             note="'Verified' is only available when an Evidence Link is present."),
         dict(key="VerBy", header="Verified By", width=16, dv="sl_People"),
         dict(key="VerDate", header="Verification Date", width=10, dv="date", fmt=DATE),
         dict(key="BarCat", header="Barrier Category", width=16, dv="sl_BarCat"),
@@ -372,6 +382,13 @@ def build(demo, path):
     adata = demo_asg(AS_OF) if demo else []
     first, last = build_table(ws, wb, acols, 5, N_ASG, "tblAssignments", adata, name_prefix="A", freeze_col="G")
     AL = acols.letter
+    msg = ("Upload the evidence first: click 'Upload ↗', save the files in Teams, copy the link into "
+           "'Evidence Link'. Then 'Complete' / 'Verified' become available.")
+    for key, ok, ne in [("Status", "sl_Status", "sl_StatusNE"), ("Verif", "sl_Verif", "sl_VerifNE")]:
+        d = DataValidation(type="list", formula1=f'=IF(LEN(${AL["Evid"]}{first})>0,{ok},{ne})', allow_blank=True,
+                           showErrorMessage=True, errorTitle="Evidence required", error=msg)
+        ws.add_data_validation(d)
+        d.add(f"{AL[key]}{first}:{AL[key]}{last}")
     rag_cf(ws, f"{AL['RAG']}{first}:{AL['RAG']}{last}")
     rng = f"{AL['M1']}{first}:{AL['M5']}{last}"
     text_cf(ws, rng, {"Done": "Green", "In Progress": "Yellow", "Not Started": "Gray"})
@@ -730,7 +747,8 @@ def build_ins(wb, sh, demo):
         ("2. Choose projects", "On 'Project Assignments' pick the Supervisor, Area, Shift and a Project Code from the dropdown. Project name, category, pillar, KPI, standard duration and milestone definitions fill in automatically. Add a specific scope/title."),
         ("3. Plan", "Enter Start Date and Coach. Target Date defaults to Start + library duration (override if needed). Enter the KPI baseline and target."),
         ("4. Update weekly", "Set each milestone (M1–M5) to In Progress / Done, update Status, KPI Actual, Gap/Barrier and Next Action. 'Current Milestone' shows the next definition of done."),
-        ("5. Verify", "When all milestones are Done: Status = Complete, paste the Evidence Link, coach sets Coach Verification = Verified. Only then does the project count as complete."),
+        ("5. Upload evidence", "Click 'Upload ↗' on the project row, save the evidence (before/after photos, data, SOP/OPL, audit) in the Teams folder, then Copy link and paste it in 'Evidence Link'. 'Complete' and 'Verified' only appear in the dropdowns once a link is pasted."),
+        ("6. Verify", "When all milestones are Done: Status = Complete, coach opens the evidence and sets Coach Verification = Verified. Only then does the project count as complete."),
         ("6. Barriers", "Log blockers on 'Gap & Barrier Log' with the Assignment ID, owner and due date. Review at the weekly tier/production meeting."),
         ("7. 5S audits", "Record 5S audits (0–5 per S) on '5S Audit Log'. The dashboard shows the latest score per area vs. target."),
         ("8. Review", "Use the Program Dashboard filters (Area, Shift, Category). Scorecard = supervisor accountability; gaps panel = what blocks completion."),

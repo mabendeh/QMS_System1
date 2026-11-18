@@ -13,7 +13,7 @@ def chk(n, g, e):
     print(("PASS " if ok else "FAIL ") + f"{n}: {g!r} vs {e!r}"); ok or fails.append(n)
 def d(v): return v.date() if isinstance(v, dt.datetime) else v
 appl = [r for r in R if r["Status"] != "N/A"]
-done = [r for r in appl if r["Status"] == "Complete" and r["Verified?"] == "Yes" and r["Evidence Link (Teams)"]]
+done = [r for r in appl if r["Status"] == "Complete" and r["Verified?"] == "Yes" and r["Evidence Link (paste Teams link)"]]
 over = [r for r in appl if r not in done and d(r["Due Date"]) and d(r["Due Date"]) < asof]
 chk("32 official requirements loaded", len(R), 32)
 chk("pillar order", list(dict.fromkeys(r["Pillar"] for r in R)), ["LEAD","EHS","FSQ","AM","PM","VO","E&T","IM","SC"])
@@ -28,4 +28,15 @@ for row in range(13, 22):
     chk(f"{p} requirements", D.cell(row, 4).value, sum(1 for r in appl if r["Pillar"] == p))
 ready = D["B5"].value
 chk("banner honest", ready.startswith("✔"), len(done) == len(appl) and len(appl) > 0)
+print("RESULT:", "ALL PASS" if not fails else f"FAIL {fails}")
+# evidence rules
+miss = [r for r in appl if r["Status"] == "Complete" and not r["Evidence Link (paste Teams link)"]]
+chk("evidence-missing tile", tiles["EVIDENCE MISSING"], len(miss))
+chk("evidence-missing rows flagged", all(r["Health"] == "Evidence Missing" for r in miss), True)
+chk("evidence uploaded %", tiles["EVIDENCE UPLOADED"], (sum(1 for r in appl if r["Evidence Link (paste Teams link)"]) / len(appl)) if appl else 0)
+up = [r["Upload Evidence"] for r in R]
+chk("upload link on every row", all(u in ("Upload ↗", "Set folder in Lists") for u in up), True)
+w = openpyxl.load_workbook(sys.argv[1])["Bronze Tracker"]
+dvs = [d.formula1 for d in w.data_validations.dataValidation if "LEN(" in (d.formula1 or "")]
+chk("conditional Complete/Yes dropdowns present", len(dvs), 2)
 print("RESULT:", "ALL PASS" if not fails else f"FAIL {fails}")

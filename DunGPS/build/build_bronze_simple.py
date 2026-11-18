@@ -16,7 +16,7 @@ from build_master import BRONZE, SUGGEST, PILLARS, LAYER, PURPOSE
 
 S_D, S_T, S_O, S_L, S_H = "Dashboard", "Bronze Tracker", "Owners", "Lists", "How To Use"
 NROW, NOWN = 45, 60
-HEALTH = {"Done": "Green", "On Track": "Green", "Needs Verification": "Yellow", "At Risk": "Yellow",
+HEALTH = {"Evidence Missing": "Red", "Done": "Green", "On Track": "Green", "Needs Verification": "Yellow", "At Risk": "Yellow",
           "Overdue": "Red", "Not Started": "Gray", "N/A": "Gray"}
 
 
@@ -37,7 +37,11 @@ def build(demo, path):
     ws["B5"], ws["C5"] = "Status date (blank = today)", AS_OF if demo else None
     ws["B6"], ws["C6"] = "ƒ Status date used", "=IF(ISNUMBER(C5),C5,TODAY())"
     ws["B7"], ws["C7"] = "'At Risk' warning window (days before due)", 14
-    for r in (5, 6, 7):
+    ws["B8"], ws["C8"] = "Evidence folder – Teams/SharePoint URL (all pillars)", (
+        "https://example.sharepoint.com/sites/DunGPS/Shared%20Documents/General/Shared" if demo else None)
+    ws["D8"] = "Paste the URL of Teams → DunGPS → General → Shared. Per-pillar folders (column N) override it."
+    ws["D8"].font = f(8, False, GRAY, True)
+    for r in (5, 6, 7, 8):
         ws.cell(r, 2).font = f(9, r == 6)
         c = ws.cell(r, 3)
         c.border = BORDER
@@ -47,18 +51,21 @@ def build(demo, path):
     ws["C5"].number_format = ws["C6"].number_format = DATE
     define(wb, "AsOfB", f"{qs(ws)}!$C$6")
     define(wb, "set_RiskDays", f"{qs(ws)}!$C$7")
+    define(wb, "set_EvidRoot", f"{qs(ws)}!$C$8")
     ws.column_dimensions["B"].width = 40
     ws.column_dimensions["C"].width = 14
     lists = [("Pillar", [p[0] for p in PILLARS[:9]]), ("Pillar Name", [p[1] for p in PILLARS[:9]]),
              ("Status", ["Not Started", "In Progress", "Complete", "N/A"]), ("Yes / No", ["Yes", "No"]),
              ("% Complete", [0, 0.25, 0.5, 0.75, 1]), ("(spacer)", []), ("(owners)", []),
-             ("Layer", [LAYER[p[0]] for p in PILLARS[:9]]), ("Pillar Purpose (GPS poster)", [PURPOSE[p[0]] for p in PILLARS[:9]])]
+             ("Layer", [LAYER[p[0]] for p in PILLARS[:9]]), ("Pillar Purpose (GPS poster)", [PURPOSE[p[0]] for p in PILLARS[:9]]),
+             ("Pillar Upload Folder URL", [f"https://example.sharepoint.com/sites/DunGPS/Shared%20Documents/General/Shared/{p[0]}" for p in PILLARS[:9]] if demo else []),
+             ("Status (no evidence yet)", ["Not Started", "In Progress", "N/A"]), ("Verified (no evidence yet)", ["No"])]
     for j, (h, vals) in enumerate(lists):
         col = 5 + j
         if h in ("(owners)", "(spacer)"):
             continue
         hdr_row(ws, 9, col, [h])
-        ws.column_dimensions[L(col)].width = {"Pillar Name": 30, "Layer": 24, "Pillar Purpose (GPS poster)": 52}.get(h, 13)
+        ws.column_dimensions[L(col)].width = {"Pillar Name": 30, "Layer": 24, "Pillar Purpose (GPS poster)": 52, "Pillar Upload Folder URL": 40}.get(h, 13)
         for i in range(20):
             c = ws.cell(10 + i, col, vals[i] if i < len(vals) else None)
             c.border = BORDER
@@ -70,6 +77,9 @@ def build(demo, path):
     define(wb, "bl_PillarCode", f"{qs(ws)}!$E$10:$E$29")
     define(wb, "bl_PillarName", f"{qs(ws)}!$F$10:$F$29")
     define(wb, "bl_Layer", f"{qs(ws)}!$L$10:$L$29")
+    define(wb, "bl_Folder", f"{qs(ws)}!$N$10:$N$29")
+    define(wb, "bl_StatusNE", f"{qs(ws)}!$O$10:$O$12")
+    define(wb, "bl_NoOnly", f"{qs(ws)}!$P$10:$P$10")
     ws.cell(30, 6, "Pillar names, order, layers and purposes: CHG GPS poster 'How the 9 GPS (TPM) pillars work together'.").font = f(8, False, GRAY, True)
     # active owner helper list
     hdr_row(ws, 9, 11, ["Owner list (auto)"], calc=True)
@@ -116,19 +126,27 @@ def build(demo, path):
         dict(key="Owner", header="Owner", width=18, dv="bl_Owners"),
         dict(key="Start", header="Start Date", width=10, dv="date", fmt=DATE),
         dict(key="Due", header="Due Date", width=10, dv="date", fmt=DATE),
-        dict(key="Status", header="Status", width=12, dv="bl_Status", default="Not Started"),
+        dict(key="Status", header="Status", width=12, default="Not Started",
+             note="'Complete' only appears after an Evidence Link is pasted in this row."),
         dict(key="Pct", header="% Complete", width=9, dv="bl_Pct", fmt=PCT, default=0),
-        dict(key="Link", header="Evidence Link (Teams)", width=22),
+        dict(key="Upload", header="Upload Evidence", width=10, calc=True,
+             formula=('=IF({Req}="","",IF(IFERROR(INDEX(bl_Folder,MATCH({Pillar},bl_PillarCode,0))&"","")<>"",'
+                      'HYPERLINK(INDEX(bl_Folder,MATCH({Pillar},bl_PillarCode,0)),"Upload ↗"),'
+                      'IF(set_EvidRoot<>"",HYPERLINK(set_EvidRoot,"Upload ↗"),"Set folder in Lists")))')),
+        dict(key="Link", header="Evidence Link (paste Teams link)", width=24,
+             note="1) Click Upload ↗  2) save the file in the Teams folder  3) ... → Copy link  4) paste here."),
+        dict(key="EvDesc", header="Evidence Description (what was uploaded)", width=24, wrap=True),
         dict(key="Open", header="Open", width=7, calc=True, formula='=IF({Link}="","",HYPERLINK({Link},"Open ↗"))'),
-        dict(key="Verified", header="Verified?", width=9, dv="bl_YesNo", default="No"),
+        dict(key="Verified", header="Verified?", width=9, default="No",
+             note="'Yes' is only available when an Evidence Link is present."),
         dict(key="VerBy", header="Verified By", width=16, dv="bl_Owners"),
         dict(key="Gap", header="Gap / What's Missing", width=28, wrap=True),
         dict(key="Next", header="Next Step", width=28, wrap=True),
         dict(key="Updated", header="Last Updated", width=10, dv="date", fmt=DATE),
         dict(key="Health", header="Health", width=15, calc=True,
-             formula=('=IF({Req}="","",IF({Status}="N/A","N/A",IF({Done}=1,"Done",IF({Overdue}=1,"Overdue",'
+             formula=('=IF({Req}="","",IF({Status}="N/A","N/A",IF({Done}=1,"Done",IF(AND({Status}="Complete",{Link}=""),"Evidence Missing",IF({Overdue}=1,"Overdue",'
                       'IF({Status}="Complete","Needs Verification",IF(AND(ISNUMBER({Due}),{Due}-AsOfB<=set_RiskDays,N({Pct})<0.75),"At Risk",'
-                      'IF(AND({Status}="Not Started",N({Pct})=0),"Not Started","On Track")))))))')),
+                      'IF(AND({Status}="Not Started",N({Pct})=0),"Not Started","On Track"))))))))')),
         dict(key="Missing", header="Missing Info", width=20, calc=True, wrap=True,
              formula=('=IF(OR({Req}="",{Status}="N/A",{Done}=1),"",IF({Owner}="","Owner; ","")&IF(NOT(ISNUMBER({Due})),"Due date; ","")'
                       '&IF(AND({Status}="Complete",{Link}=""),"Evidence link; ","")&IF(AND({Status}="Complete",{Verified}<>"Yes"),"Verification; ",""))')),
@@ -143,9 +161,9 @@ def build(demo, path):
         dict(key="Days", header="Days Late", width=6, calc=True, fmt="0",
              formula='=IF({Overdue}=1,AsOfB-{Due},"")'),
         dict(key="Key", header="Attention Key", width=6, calc=True, fmt="0.0",
-             formula=('=IF({Health}="Overdue",100000+N({Days}),IF(OR({Health}="At Risk",{Health}="Needs Verification"),'
-                      'IF(ISNUMBER({Due}),5000-MIN(4999,MAX(0,{Due}-AsOfB)),100),0))'
-                      '+IF(OR({Health}="Overdue",{Health}="At Risk",{Health}="Needs Verification"),ROW()/100000,0)')),
+             formula=('=IF({Health}="Overdue",100000+N({Days}),IF({Health}="Evidence Missing",50000,IF(OR({Health}="At Risk",{Health}="Needs Verification"),'
+                      'IF(ISNUMBER({Due}),5000-MIN(4999,MAX(0,{Due}-AsOfB)),100),0)))'
+                      '+IF(OR({Health}="Overdue",{Health}="Evidence Missing",{Health}="At Risk",{Health}="Needs Verification"),ROW()/100000,0)')),
     ]
     rows = []
     for p, reqs in BRONZE.items():
@@ -170,15 +188,26 @@ def build(demo, path):
                 r.update(Status="In Progress", Pct=random.choice([0.25, 0.5, 0.75]), Gap="DEMO: what is missing",
                          Next="DEMO: next step")
         rows[-1]["Status"] = "N/A"
+        rows[5].update(Status="Complete", Pct=1, Verified="No", Link=None)  # legacy entry: flagged 'Evidence Missing'
+        for r in rows:
+            if r.get("Link"):
+                r["EvDesc"] = "DEMO: signed checklist + photos"
     first, last = build_table(ws, wb, Cols(ts), 5, NROW, "tblBronzeSimple", rows, name_prefix="BT", freeze_col="E",
                               row_height=30)
     TL = Cols(ts).letter
+    msg = ("Upload the evidence first: click 'Upload ↗', save the file in the Teams folder, copy its link "
+           "into 'Evidence Link'. Then 'Complete' / 'Yes' become available.")
+    for key, ok, ne in [("Status", "bl_Status", "bl_StatusNE"), ("Verified", "bl_YesNo", "bl_NoOnly")]:
+        d = DataValidation(type="list", formula1=f'=IF(LEN(${TL["Link"]}{first})>0,{ok},{ne})', allow_blank=True,
+                           showErrorMessage=True, errorTitle="Evidence required", error=msg)
+        ws.add_data_validation(d)
+        d.add(f"{TL[key]}{first}:{TL[key]}{last}")
     text_cf(ws, f"{TL['Health']}{first}:{TL['Health']}{last}", HEALTH)
     text_cf(ws, f"{TL['Status']}{first}:{TL['Status']}{last}", {"Complete": "Green", "In Progress": "Yellow"})
     bar_cf(ws, f"{TL['Prog']}{first}:{TL['Prog']}{last}")
     ws.conditional_formatting.add(f"{TL['Missing']}{first}:{TL['Missing']}{last}",
                                   FormulaRule(formula=[f'LEN(${TL["Missing"]}{first})>0'], font=Font(color="C55A11", bold=True)))
-    ws.cell(4, 2, "Done = Status 'Complete' + Evidence Link + Verified? 'Yes'.   Use 'N/A' only when CHG has approved "
+    ws.cell(4, 2, "Evidence is mandatory: Upload ↗ → save in Teams → paste link → then Complete.  Done = Complete + Evidence Link + Verified? 'Yes'.   Use 'N/A' only when CHG has approved "
                   "that the requirement does not apply.").font = f(8, True, BURG)
     # hide technical helper columns
     for k in ("Appl", "Done", "Overdue", "Days", "Key"):
@@ -193,7 +222,7 @@ def build(demo, path):
         ws.column_dimensions[L(i)].width = w
     ws.merge_cells("B5:N5")
     ws["B5"] = ('=IF(AND(SUM(BT_Appl)>0,SUM(BT_Done)=SUM(BT_Appl)),"✔  BRONZE READY – all "&SUM(BT_Appl)&" requirements done and verified",'
-                '"NOT YET BRONZE READY  –  "&SUM(BT_Done)&" of "&SUM(BT_Appl)&" requirements done  ·  "&SUM(BT_Overdue)&" overdue")')
+                '"NOT YET BRONZE READY  –  "&SUM(BT_Done)&" of "&SUM(BT_Appl)&" requirements done  ·  "&SUM(BT_Overdue)&" overdue  ·  "&COUNTIF(BT_Health,"Evidence Missing")&" missing evidence")')
     ws["B5"].font = f(13, True, WHITE)
     ws["B5"].alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[5].height = 28
@@ -201,12 +230,13 @@ def build(demo, path):
     ws.conditional_formatting.add("B5:N5", FormulaRule(formula=['LEFT($B$5,1)<>"✔"'], fill=fill(BURG)))
     tiles = [
         ("% DONE (VERIFIED)", '=IF(SUM(BT_Appl)=0,0,SUM(BT_Done)/SUM(BT_Appl))', PCT, '=SUM(BT_Done)&" of "&SUM(BT_Appl)&" requirements"', "2E7D32", 2),
-        ("AVERAGE PROGRESS", '=IF(SUM(BT_Appl)=0,0,SUMPRODUCT(BT_Appl,BT_Prog)/SUM(BT_Appl))', PCT, '="all requirements"', NAVY, 2),
-        ("IN PROGRESS", '=COUNTIF(BT_Health,"On Track")+COUNTIF(BT_Health,"At Risk")', "0", '=COUNTIF(BT_Health,"At Risk")&" at risk"', NAVY, 2),
-        ("NEEDS VERIFICATION", '=COUNTIF(BT_Health,"Needs Verification")', "0", '="complete, not yet verified"', "C9A227", 2),
-        ("NOT STARTED", '=COUNTIF(BT_Health,"Not Started")', "0", '="no progress yet"', GRAY, 2),
+        ("EVIDENCE UPLOADED", '=IF(SUM(BT_Appl)=0,0,SUMPRODUCT(BT_Appl,--(BT_Link<>""))/SUM(BT_Appl))', PCT, '=SUMPRODUCT(BT_Appl,--(BT_Link<>""))&" of "&SUM(BT_Appl)&" have evidence"', NAVY, 2),
+        ("IN PROGRESS", '=COUNTIF(BT_Health,"On Track")+COUNTIF(BT_Health,"At Risk")', "0", '=COUNTIF(BT_Health,"At Risk")&" at risk"', NAVY, 1),
+        ("NEEDS VERIFICATION", '=COUNTIF(BT_Health,"Needs Verification")', "0", '="evidence in, not verified"', "C9A227", 2),
+        ("EVIDENCE MISSING", '=COUNTIF(BT_Health,"Evidence Missing")', "0", '="complete but no evidence"', BURG, 2),
+        ("NOT STARTED", '=COUNTIF(BT_Health,"Not Started")', "0", '="no progress"', GRAY, 1),
         ("OVERDUE", "=SUM(BT_Overdue)", "0", '="past due date"', BURG, 2),
-        ("NO OWNER", '=COUNTIFS(BT_Appl,1,BT_Done,0,BT_Owner,"")', "0", '="unassigned requirements"', BURG, 1),
+        ("NO OWNER", '=COUNTIFS(BT_Appl,1,BT_Done,0,BT_Owner,"")', "0", '="unassigned"', BURG, 1),
     ]
     c = 2
     for lab, fm, fmt, sub, acc, w in tiles:
@@ -339,18 +369,19 @@ def build(demo, path):
     style_chart(ch, "% done vs average progress by pillar", w=12.5, h=7.5)
     ws.add_chart(ch, f"I{r2}")
     # doughnut data (small, gray) next to owner table
-    labels = ["Done", "In progress", "Needs verification", "Not started", "Overdue"]
+    labels = ["Done", "In progress", "Needs verification", "Not started", "Overdue", "Evidence missing"]
     forms = ['=COUNTIF(BT_Health,"Done")', '=COUNTIF(BT_Health,"On Track")+COUNTIF(BT_Health,"At Risk")',
-             '=COUNTIF(BT_Health,"Needs Verification")', '=COUNTIF(BT_Health,"Not Started")', '=COUNTIF(BT_Health,"Overdue")']
+             '=COUNTIF(BT_Health,"Needs Verification")', '=COUNTIF(BT_Health,"Not Started")', '=COUNTIF(BT_Health,"Overdue")',
+             '=COUNTIF(BT_Health,"Evidence Missing")']
     rd = r2 + 17
     ws.cell(rd, 2, "Status mix (chart data)").font = f(7, False, GRAY)
     for i, (lab, fm) in enumerate(zip(labels, forms)):
         ws.cell(rd + 1 + i, 2, lab).font = f(8)
         ws.cell(rd + 1 + i, 3, fm).font = f(8)
     dc = DoughnutChart()
-    dc.add_data(Reference(ws, min_col=3, min_row=rd + 1, max_row=rd + 5))
-    dc.set_categories(Reference(ws, min_col=2, min_row=rd + 1, max_row=rd + 5))
-    for i, cl in enumerate(["2E7D32", "F2C94C", "C9A227", "BFBFBF", "C62828"]):
+    dc.add_data(Reference(ws, min_col=3, min_row=rd + 1, max_row=rd + 6))
+    dc.set_categories(Reference(ws, min_col=2, min_row=rd + 1, max_row=rd + 6))
+    for i, cl in enumerate(["2E7D32", "F2C94C", "C9A227", "BFBFBF", "C62828", "8C1D40"]):
         pt = DataPoint(idx=i)
         pt.graphicalProperties.solidFill = cl
         dc.series[0].dPt.append(pt)
@@ -369,12 +400,14 @@ def build(demo, path):
         ("1. Add owners", "On 'Owners', type each person's name (Active? = Yes). They appear in the Owner and Verified By dropdowns."),
         ("2. Assign", "On 'Bronze Tracker', pick an Owner, Start Date and Due Date for each of the 32 requirements."),
         ("3. Update weekly", "Owners update Status, % Complete, Gap / What's Missing, Next Step and Last Updated."),
-        ("4. Prove it", "When finished: Status = Complete, paste the Teams link to the evidence (Teams → DunGPS → General → Shared → pillar folder → Copy link)."),
+        ("4. Upload evidence", "Click 'Upload ↗' on the row (opens the pillar's Teams folder), upload the file(s), then ... → Copy link and paste it in 'Evidence Link'. Describe what you uploaded. Tip: one sub-folder per requirement (e.g. FSQ-3) keeps all its files together."),
+        ("4b. Mark complete", "Only after the link is pasted does 'Complete' appear in the Status dropdown (no evidence = cannot complete)."),
         ("5. Verify", "The verifier opens the evidence and sets Verified? = Yes and Verified By. Only then is the requirement 'Done'."),
         ("Review", "Open 'Dashboard' in the weekly meeting. It prints on one landscape page."),
         ("", ""),
         ("Health – Done", "Complete + evidence link + Verified? = Yes."),
-        ("Health – Needs Verification", "Marked Complete but not yet verified (or no evidence link)."),
+        ("Health – Needs Verification", "Complete with evidence, waiting for the verifier."),
+        ("Health – Evidence Missing", "Marked Complete without an evidence link (e.g. pasted or old data). Upload evidence or reset the status."),
         ("Health – Overdue", "Past the due date and not Done."),
         ("Health – At Risk", "Due within the warning window (default 14 days) and less than 75% complete."),
         ("Health – On Track", "Started and not at risk."),
@@ -386,7 +419,7 @@ def build(demo, path):
         ("", ""),
         ("Source", "The 32 requirements are copied word for word from CHG's 'GPS Pillar Bronze Level Requirements'. "
                    "The 'Evidence Needed' column is a suggestion – replace with CHG's official evidence when available."),
-        ("Settings", "'Lists' sheet: status date (blank = today), the At-Risk window, and dropdown values."),
+        ("Settings", "'Lists' sheet: status date (blank = today), At-Risk window, the Teams evidence folder URL (and optional per-pillar folders), dropdown values."),
         ("Adding rows", "13 spare rows are pre-formatted at the bottom of the tracker if CHG adds requirements."),
     ]
     r = 5
