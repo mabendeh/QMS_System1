@@ -1,0 +1,544 @@
+{
+ "combined": {
+  "build": "v1.0 2026-11-19",
+  "total": 87,
+  "passed": 87,
+  "failed": 0,
+  "tests": [
+   {
+    "area": "Formulas (production)",
+    "test": "LibreOffice full recalculation of 41244 formulas: zero errors (no REF, VALUE, NAME, DIV/0 or N/A error values)",
+    "result": "PASS",
+    "detail": "{}"
+   },
+   {
+    "area": "Formulas (demo)",
+    "test": "LibreOffice full recalculation of 41244 formulas: zero errors (no REF, VALUE, NAME, DIV/0 or N/A error values)",
+    "result": "PASS",
+    "detail": "{}"
+   },
+   {
+    "area": "Structure (production)",
+    "test": "All 17 worksheets present in the specified order (01-14 plus 03A/06A/07A support sheets)",
+    "result": "PASS",
+    "detail": "['01 Executive Dashboard', '02 Project Register', '03 Project Charter', '03A Charter Records', '04 Action Tracker', '05 Financial Savings', '06 Weekly WOR Report', '06A WOR Weekly Updates', '07 Supervisor Development', '07A Rubric and Summary', '08 CI Tools', '09 Risks and Escalations', '10 Evidence Register', '11 Master Data', '12 User Guide', '13 Data Dictionary', '14 QA Report']"
+   },
+   {
+    "area": "Structure (production)",
+    "test": "Excel tables exist for every register (filters/structured layout)",
+    "result": "PASS",
+    "detail": "['tblActions', 'tblCharters', 'tblDevelopment', 'tblEvidence', 'tblPeople', 'tblProjects', 'tblRisks', 'tblSavings', 'tblWORUpdates']"
+   },
+   {
+    "area": "Structure (production)",
+    "test": "All 135 named ranges used in formulas are defined",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Dropdowns (production)",
+    "test": "144 data-validation rules; every list dropdown points to a defined dynamic list",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Dropdowns (production)",
+    "test": "Required editable lists exist (supervisors, departments, shifts, equipment, stages, statuses, priorities, Finance statuses, categories, IDs)",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Dropdowns (production)",
+    "test": "Dropdown lists are dynamic (OFFSET/COUNTA) so new supervisors/values need no formula edits",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Protection (production)",
+    "test": "Sheet protection enabled on every sheet (formula cells locked, filters allowed)",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Protection (production)",
+    "test": "Formula cells locked (2981 checked) and yellow input cells unlocked (5322 checked)",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Usability (production)",
+    "test": "Frozen header rows on every register",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Formatting (production)",
+    "test": "Conditional formatting present for overdue actions, blocked projects, missing evidence/links and leadership escalations",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Printing (production)",
+    "test": "Dashboard WOR view prints on one landscape page (fit 1x1)",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Printing (production)",
+    "test": "Project charter prints on one portrait page (fit 1x1)",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Printing (production)",
+    "test": "WOR report: landscape, 1 page wide, title rows repeat, page break every 5 projects",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Hyperlinks (production)",
+    "test": "Dashboard navigation: 14 internal links all target existing sheets",
+    "result": "PASS",
+    "detail": "['02 Project Register', '03 Project Charter', '04 Action Tracker', '05 Financial Savings', '06 Weekly WOR Report', '06A WOR Weekly Updates', '07 Supervisor Development', '08 CI Tools', '09 Risks and Escalations', '10 Evidence Register', '11 Master Data', '12 User Guide', '13 Data Dictionary', '14 QA Report']"
+   },
+   {
+    "area": "Hyperlinks (production)",
+    "test": "Evidence Register 'Open Link' column uses HYPERLINK() on the entered SharePoint/Teams URL",
+    "result": "PASS",
+    "detail": "=IF(F6=\"\",\"\",HYPERLINK(F6,\"Open link\"))"
+   },
+   {
+    "area": "Dashboard (production)",
+    "test": "Trend charts present (4: completion, overdue, savings, Pareto)",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Dashboard (production)",
+    "test": "Every KPI card and project-status cell is a formula (no typed metrics)",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Branding (production)",
+    "test": "No logo image embedded (official logo not supplied - placeholder text only)",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Formatting (production)",
+    "test": "Consistent typography (Arial) on dashboard, register and WOR report",
+    "result": "PASS",
+    "detail": "{'Arial'}"
+   },
+   {
+    "area": "Compatibility (production)",
+    "test": "No macros (VBA) and no external workbook links",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Structure (demo)",
+    "test": "All 17 worksheets present in the specified order (01-14 plus 03A/06A/07A support sheets)",
+    "result": "PASS",
+    "detail": "['01 Executive Dashboard', '02 Project Register', '03 Project Charter', '03A Charter Records', '04 Action Tracker', '05 Financial Savings', '06 Weekly WOR Report', '06A WOR Weekly Updates', '07 Supervisor Development', '07A Rubric and Summary', '08 CI Tools', '09 Risks and Escalations', '10 Evidence Register', '11 Master Data', '12 User Guide', '13 Data Dictionary', '14 QA Report']"
+   },
+   {
+    "area": "Structure (demo)",
+    "test": "Excel tables exist for every register (filters/structured layout)",
+    "result": "PASS",
+    "detail": "['tblActions', 'tblCharters', 'tblDevelopment', 'tblEvidence', 'tblPeople', 'tblProjects', 'tblRisks', 'tblSavings', 'tblWORUpdates']"
+   },
+   {
+    "area": "Structure (demo)",
+    "test": "All 135 named ranges used in formulas are defined",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Dropdowns (demo)",
+    "test": "144 data-validation rules; every list dropdown points to a defined dynamic list",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Dropdowns (demo)",
+    "test": "Required editable lists exist (supervisors, departments, shifts, equipment, stages, statuses, priorities, Finance statuses, categories, IDs)",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Dropdowns (demo)",
+    "test": "Dropdown lists are dynamic (OFFSET/COUNTA) so new supervisors/values need no formula edits",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Protection (demo)",
+    "test": "Sheet protection enabled on every sheet (formula cells locked, filters allowed)",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Protection (demo)",
+    "test": "Formula cells locked (2981 checked) and yellow input cells unlocked (5322 checked)",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Usability (demo)",
+    "test": "Frozen header rows on every register",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Formatting (demo)",
+    "test": "Conditional formatting present for overdue actions, blocked projects, missing evidence/links and leadership escalations",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Printing (demo)",
+    "test": "Dashboard WOR view prints on one landscape page (fit 1x1)",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Printing (demo)",
+    "test": "Project charter prints on one portrait page (fit 1x1)",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Printing (demo)",
+    "test": "WOR report: landscape, 1 page wide, title rows repeat, page break every 5 projects",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Hyperlinks (demo)",
+    "test": "Dashboard navigation: 14 internal links all target existing sheets",
+    "result": "PASS",
+    "detail": "['02 Project Register', '03 Project Charter', '04 Action Tracker', '05 Financial Savings', '06 Weekly WOR Report', '06A WOR Weekly Updates', '07 Supervisor Development', '08 CI Tools', '09 Risks and Escalations', '10 Evidence Register', '11 Master Data', '12 User Guide', '13 Data Dictionary', '14 QA Report']"
+   },
+   {
+    "area": "Hyperlinks (demo)",
+    "test": "Evidence Register 'Open Link' column uses HYPERLINK() on the entered SharePoint/Teams URL",
+    "result": "PASS",
+    "detail": "=IF(F6=\"\",\"\",HYPERLINK(F6,\"Open link\"))"
+   },
+   {
+    "area": "Dashboard (demo)",
+    "test": "Trend charts present (4: completion, overdue, savings, Pareto)",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Dashboard (demo)",
+    "test": "Every KPI card and project-status cell is a formula (no typed metrics)",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Branding (demo)",
+    "test": "No logo image embedded (official logo not supplied - placeholder text only)",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Formatting (demo)",
+    "test": "Consistent typography (Arial) on dashboard, register and WOR report",
+    "result": "PASS",
+    "detail": "{'Arial'}"
+   },
+   {
+    "area": "Compatibility (demo)",
+    "test": "No macros (VBA) and no external workbook links",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Production data",
+    "test": "Exactly 5 register rows: 3 confirmed projects + Maintenance and Warehouse placeholders",
+    "result": "PASS",
+    "detail": "['DUN-CI-001', 'DUN-CI-002', 'DUN-CI-003', 'DUN-CI-004', 'DUN-CI-005']"
+   },
+   {
+    "area": "Production data",
+    "test": "Confirmed owners preloaded exactly as assigned (leader + co-owner)",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Production data",
+    "test": "Placeholders for Maintenance / Warehouse have NO owner and status Pending Assignment",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Production data",
+    "test": "No invented dates, baselines, targets, KPIs, sponsors or shifts (all blank)",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Production data",
+    "test": "Department left blank for the 3 projects where it was not confirmed",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Production data",
+    "test": "No fabricated actions (table empty)",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Production data",
+    "test": "No fabricated savings lines (table empty)",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Production data",
+    "test": "No fabricated weekly updates (table empty)",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Production data",
+    "test": "No fabricated risks (table empty)",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Production data",
+    "test": "No fabricated evidence records (table empty)",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Production dashboard",
+    "test": "KPI cards: 3 active, 0 complete, action completion N/A (no actions yet), 0 overdue, $0 forecast, $0 verified, 5 requiring attention, 0 escalations",
+    "result": "PASS",
+    "detail": "{'B7': 3, 'D7': 0, 'F7': 'N/A', 'H7': 0, 'J7': 0, 'L7': 0, 'N7': 5, 'P7': 0}"
+   },
+   {
+    "area": "Production dashboard",
+    "test": "All 12 live reconciliation checks = PASS",
+    "result": "PASS",
+    "detail": "['PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS']"
+   },
+   {
+    "area": "Production dashboard",
+    "test": "RAG: 3 AMBER (target dates not yet set) and 2 PENDING (awaiting assignment)",
+    "result": "PASS",
+    "detail": "['AMBER', 'AMBER', 'AMBER', 'PENDING', 'PENDING']"
+   },
+   {
+    "area": "Production data",
+    "test": "Settings: As-Of date blank (uses TODAY()), ID prefix DUN-CI-, 52-week annualization labelled as assumption",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Calculation (demo)",
+    "test": "Register per-project KPIs (actions, completion %, milestones, overdue, risks, RAG, forecast, verified) match independent Python recomputation for all 6 projects",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Calculation (demo)",
+    "test": "Savings lines: material, changeover, annualization, gross/net, attribution and verified values match the documented formulas",
+    "result": "PASS",
+    "detail": "[]"
+   },
+   {
+    "area": "Finance integrity (demo)",
+    "test": "Unapproved line with a realized amount entered (Under Review, $9,999) contributes $0 to verified",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Finance integrity (demo)",
+    "test": "Changeover line NOT demonstrated values $0 cash but reports capacity hours (5.8 h/wk -> 303.3 h/yr)",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Finance integrity (demo)",
+    "test": "Shared benefit pool attributed 60% + 50% is flagged OVER-ATTRIBUTED (double counting prevented)",
+    "result": "PASS",
+    "detail": "('OVER-ATTRIBUTED >100% - resolve', 'OVER-ATTRIBUTED >100% - resolve')"
+   },
+   {
+    "area": "Finance integrity (demo)",
+    "test": "Rejected line excluded from forecast KPI and flagged for missing data source",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Finance integrity (demo)",
+    "test": "Volume shift above 20% tolerance is flagged / within tolerance reads 'Comparable'",
+    "result": "PASS",
+    "detail": "Comparable"
+   },
+   {
+    "area": "Dashboard reconciliation (demo)",
+    "test": "All KPI cards equal totals recomputed independently from the source records",
+    "result": "PASS",
+    "detail": "{}"
+   },
+   {
+    "area": "Dashboard reconciliation (demo)",
+    "test": "Action completion card = credited / non-cancelled actions",
+    "result": "PASS",
+    "detail": "(0.368421052631579, 7, 19)"
+   },
+   {
+    "area": "Dashboard reconciliation (demo)",
+    "test": "Live integrity panel passes every check except the intentionally seeded over-attribution",
+    "result": "PASS",
+    "detail": "{'Over-attributed benefit pools (must be 0)': 'CHECK - review source data'}"
+   },
+   {
+    "area": "Dashboard reconciliation (demo)",
+    "test": "Department and shift breakdowns sum to total projects, actions and savings",
+    "result": "PASS",
+    "detail": "(6, 6, 19, 47293.75)"
+   },
+   {
+    "area": "Trends (demo)",
+    "test": "12-week planned / completed / overdue trend matches date-based recomputation",
+    "result": "PASS",
+    "detail": "[((2, 2, 0), (2, 2, 0)), ((2, 2, 0), (2, 2, 0)), ((2, 3, 0), (2, 3, 0)), ((3, 3, 0), (3, 3, 0))]"
+   },
+   {
+    "area": "Trends (demo)",
+    "test": "Cumulative forecast run-rate for the current month matches recomputation",
+    "result": "PASS",
+    "detail": "(7982.8125, 7982.8125)"
+   },
+   {
+    "area": "Actions (demo)",
+    "test": "'Complete' without completed date is NOT credited and is flagged 'Enter completed date'",
+    "result": "PASS",
+    "detail": "(0, 'Enter completed date')"
+   },
+   {
+    "area": "Actions (demo)",
+    "test": "Days remaining = due - As-Of date; overdue flagged; on-time/late closure classified",
+    "result": "PASS",
+    "detail": "[(None, 'Closed On Time'), (None, 'Closed Late'), (None, 'Closed On Time'), (-6, 'OVERDUE'), (5, 'DUE SOON')]"
+   },
+   {
+    "area": "Actions (demo)",
+    "test": "Missing evidence flagged on credited actions without evidence; evidence-linked action shows Verified",
+    "result": "PASS",
+    "detail": "['Verified', 'Not yet verified', 'MISSING EVIDENCE']"
+   },
+   {
+    "area": "Actions (demo)",
+    "test": "Action with no due date flagged NO DUE DATE",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "Evidence (demo)",
+    "test": "Link check: https link OK, malformed link flagged; Action ID on another project flagged",
+    "result": "PASS",
+    "detail": "[('Format OK', 'OK'), ('Check format', 'OK'), ('Format OK', 'Action is on another project')]"
+   },
+   {
+    "area": "Risks (demo)",
+    "test": "Escalated High-impact blocker flagged LEADERSHIP ACTION; closed item not flagged; days open computed",
+    "result": "PASS",
+    "detail": "[('LEADERSHIP ACTION', 34), (None, 17), (None, 19)]"
+   },
+   {
+    "area": "Development (demo)",
+    "test": "Competency average excludes unscored areas (3.375 with 8 of 9 scored); level band and focus area derived",
+    "result": "PASS",
+    "detail": "(3.375, '3 - Proficient', 'Problem Definition')"
+   },
+   {
+    "area": "Development (demo)",
+    "test": "Participation summary: latest review average and closure % per supervisor (no savings, no ranking)",
+    "result": "PASS",
+    "detail": "('Demo Supervisor A', 3.375, 0.5)"
+   },
+   {
+    "area": "Charter (demo)",
+    "test": "Charter pulls register, charter-record and milestone data for the selected project",
+    "result": "PASS",
+    "detail": ""
+   },
+   {
+    "area": "WOR report (demo)",
+    "test": "Default filters show 5 open projects (completed excluded) with goal, KPI actual and latest update",
+    "result": "PASS",
+    "detail": "('DEMO-001 | DEMO - Line scrap reduction', 3.1, 'Trial complete (demo)', 'Projects shown: 5')"
+   },
+   {
+    "area": "WOR report (demo)",
+    "test": "Project with no weekly update shows 'No update recorded' and STALE warning",
+    "result": "PASS",
+    "detail": "('No update recorded',)"
+   },
+   {
+    "area": "Scenario (demo copy)",
+    "test": "WOR filter Department = Maintenance + include completed -> only DEMO-004 shown",
+    "result": "PASS",
+    "detail": "('DEMO-004 | DEMO - PM compliance', None)"
+   },
+   {
+    "area": "Scenario (demo copy)",
+    "test": "WOR owner filter matches leader OR co-owner (Demo Supervisor C -> DEMO-002 co-owner, DEMO-003 leader)",
+    "result": "PASS",
+    "detail": "('DEMO-002 | DEMO - Changeover standard work', 'DEMO-003 | DEMO - SAP confirmation accuracy')"
+   },
+   {
+    "area": "Scenario (demo copy)",
+    "test": "WOR shift filter = B -> DEMO-002 and DEMO-005",
+    "result": "PASS",
+    "detail": "('DEMO-002 | DEMO - Changeover standard work', 'DEMO-005 | DEMO - Pick accuracy')"
+   },
+   {
+    "area": "Scenario (demo copy)",
+    "test": "Entering a completed date on an overdue action: credited 7->8, overdue 6->5, reconciliation still PASS",
+    "result": "PASS",
+    "detail": "(8, 5)"
+   },
+   {
+    "area": "Scenario (demo copy)",
+    "test": "Finance status change to Approved moves the realized amount into verified savings (3,900 -> 13,899)",
+    "result": "PASS",
+    "detail": "13899"
+   },
+   {
+    "area": "Scenario (demo copy)",
+    "test": "Changing the As-Of date to 09/01/2026 re-evaluates overdue actions (6 -> 0)",
+    "result": "PASS",
+    "detail": "0"
+   },
+   {
+    "area": "Scenario (demo copy)",
+    "test": "Adding a supervisor (Master Data) and a project (Register) works with no formula changes: ID auto-generated, owner valid, dashboard and development summary update",
+    "result": "PASS",
+    "detail": "('DEMO-007', 5, 'OK')"
+   }
+  ],
+  "limitations": [
+   "Recalculation was verified with LibreOffice; the workbook targets desktop Excel 2019 / Microsoft 365 (MAXIFS/MINIFS). Open once in Excel and confirm the dashboard before first WOR use - Excel recalculates fully on open.",
+   "Sheet protection has no password and is not a security control; Excel has no row-level ownership security. Anyone with edit access can change any input (use SharePoint version history for audit).",
+   "Excel cannot upload, store or secure documents, and there is no live SharePoint synchronization. The Evidence Register stores hyperlinks only; viewers need permission to the target folder. The approved folder URL must be entered by the CI Manager.",
+   "Trends are reconstructed from recorded dates (due/completed/Finance review). If dates are edited retroactively the history changes; for a frozen record, save a PDF of the dashboard each WOR week.",
+   "IDs derive from row position: do not sort or delete rows in the data sheets (use Status = Cancelled). Filtering is safe.",
+   "Capacity: 150 projects, 1,000 actions, 300 savings lines, 2,000 weekly updates, 300 risks, 1,000 evidence links, 300 reviews; dashboard lists the first 15 projects and the WOR report 10 per filter.",
+   "Annualization uses 52 operating weeks by default - an assumption pending Finance confirmation (Master Data C9).",
+   "Data-sheet print areas are dynamic named ranges (grow with the records entered); some non-Microsoft viewers ignore them.",
+   "No official C.H. Guenther logo was supplied, so none is embedded; a labelled placeholder marks where to insert it.",
+   "Primary owner for each initial project is the first-named person in the assignment; confirm or swap leader/co-owner in the register."
+  ]
+ }
+}
