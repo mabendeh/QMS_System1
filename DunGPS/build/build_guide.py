@@ -172,6 +172,22 @@ def build(out):
                ["Review", "Program Dashboard (filters: area, shift, category): scorecard per supervisor vs the program target (default 2 verified projects per period), completion by category/area, latest 5S score, gaps panel, overdue list, Pareto."]],
               [1.0 * inch, W - 1.0 * inch]),
           Spacer(1, 6), img("sup.png", W * 0.66), PageBreak()]
+    s += [P("8. Supervisor 90-Day Projects (Nugget Line · Mixers &amp; Rolled Dough · Packaging)", "h1"),
+          P("File: <b>CHG_Supervisor_90-Day_Projects.xlsx</b>. Small, low-cost projects that replace an old habit with a new standard, "
+            "each measured by one 'lower is better' KPI that converts to money: weekly savings = (baseline − actual) × volume per week × $ per unit.", "b"),
+          tbl([["Group", "Projects in the menu (4 pre-selected + 1 spare)"],
+               ["Nugget Line", "Right First Pound (startup scrap) · Count the little stops (minor stops) · Hit the target weight (giveaway) · Keep it on the belt (floor waste) · spare: Changeover kit"],
+               ["Mixers &amp; Rolled Dough", "Verify before you mix (right-first-time batches) · Right water, right temp (dough temperature) · Trim to the line (sheeting trim) · Mix to the line's pace (aged dough) · spare: Clean as you go (spills)"],
+               ["Packaging", "Every roll to the core (film waste) · Handle with care (case damage) · Count the jams (bagger stops) · Right the first time (label/code repack) · spare: Check-weigher discipline"]],
+              [1.6 * inch, W - 1.6 * inch]),
+          P("How it works", "h2"),
+          P("• Each project sheet (NL-1…4, MR-1…4, PK-1…4) shows OLD habit ▶ NEW habit, the setup (supervisor, start date, baseline, target, volume, $ per unit), "
+            "13 weeks of KPI tracking with a target path (baseline → target by week 8, hold to week 13), weekly and cumulative savings, an improvement chart, "
+            "and a 9-step action plan (Month 1 measure &amp; standardize · Month 2 implement · Month 3 sustain &amp; verify). Done = Yes requires an evidence link.<br/>"
+            "• Dashboard: every project by group – latest 4-week average vs baseline and target, improvement achieved, savings to date, annual run-rate, actions done, status "
+            "(On Track · Behind · Off Track · Data Missing · Not Started).<br/>"
+            "• Use real costs from Finance for $ per unit; run-rate is an estimate until Finance confirms. Weight, temperature and rework changes are agreed with QA first.", "b"),
+          PageBreak()]
     # 8 admin & missing info
     s += [P("8. Administration &amp; technical notes", "h1"),
           P("• <b>Lists:</b> add values at the end of a list on the Configuration sheet; no blank rows inside a list. Gray-header lists are system values used by formulas – do not rename them.<br/>"
