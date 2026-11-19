@@ -6,7 +6,7 @@ Excel-based (no macros) management system for TPM / DunGPS pillar deployment and
 
 | File | Purpose |
 |---|---|
-| `CHG_Bronze_Level_Tracker.xlsx` | **Start here.** Simple Bronze tracker: 32 official requirements in GPS pillar order, owner dropdown, status, % complete, evidence link, verified?, plus a one-page dashboard (by pillar and by the 3 GPS layers). |
+| `CHG_Bronze_Level_Tracker.xlsx` | **Start here.** Bronze tracker with a gauge dashboard (completion rate per pillar, grouped by the 3 GPS layers) and one sheet per pillar: official requirements with owner, dates, scheduled duration/hours, schedule bar and mandatory evidence, plus a pillar-specific working log (e.g. AM equipment & equipment type). |
 | `CHG_Bronze_Level_Tracker_DEMO.xlsx` | Demo version for training. |
 | `CHG_DunGPS_Deployment_Master.xlsx` | Optional full management system: 13 sheets (Executive Dashboard, Pillar Deployment Tracker, Process Deployment Matrix, Gap Analysis Dashboard, Gap Register, Owner Directory, Bronze Star Readiness, VO & Tiger Team Projects, Document & Evidence Register, Management Review, Configuration & Dropdown Lists, Instructions & Data Definitions, Calc Engine). Pre-loaded only with the 9 pillars and 32 Bronze requirements from the CHG source file plus the Pre-Weigh project (baseline pending). |
 | `CHG_DunGPS_Deployment_Master_DEMO.xlsx` | Same system with clearly labelled fictitious data, used for testing and training. |

@@ -80,18 +80,17 @@ def build(out):
           P("Official content loaded: the 9 pillars and 32 Bronze Level requirements from <i>GPS_Pillar_Bronze_Level_Requirements.xlsx</i>, imported word for word. "
             "Nothing else is presented as official CHG content. No owners, dates or savings have been invented.", "s"),
           PageBreak()]
-    s += [P("Bronze Level Tracker – the simple way to run Bronze", "h1"),
-          tbl([["Step", "What to do"],
-               ["1. Owners", "Owners sheet: type each person once (Active? = Yes). They appear in every Owner / Verified By dropdown."],
-               ["2. Assign", "Bronze Tracker: choose Owner, Start Date and Due Date for each requirement."],
-               ["3. Update weekly", "Status, % Complete, Gap / What's Missing, Next Step, Last Updated."],
-               ["4. Upload evidence (mandatory)", "Click <b>Upload ↗</b> on the row – it opens the pillar's Teams folder (Teams → DunGPS → General → Shared → pillar). Upload the file(s), use <i>Copy link</i>, paste it in <b>Evidence Link</b> and describe what was uploaded. Tip: one sub-folder per requirement (e.g. FSQ-3)."],
-               ["4b. Complete", "'Complete' only appears in the Status dropdown (and 'Yes' in Verified?) after an evidence link is pasted – no evidence, no completion. Rows marked Complete without evidence (e.g. pasted data) show <b>Evidence Missing</b> in red."],
-               ["5. Verify", "Verifier sets Verified? = Yes. Only then is the requirement Done."],
-               ["Health colours", "Done (green) · On Track (green) · Needs Verification (amber) · Evidence Missing (red) · At Risk – due within 14 days and under 75% (amber) · Overdue (red) · Not Started (gray)."],
-               ["Dashboard", "Bronze-ready banner, % done, average progress, counts, progress by pillar, the 3 GPS layers (Foundation · Equipment Focus · Capability &amp; Governance), needs-attention list, owner summary, charts. Prints on one page."]],
+    s += [P("Bronze Level Tracker – one sheet per pillar", "h1"),
+          tbl([["Sheet / step", "What to do"],
+               ["Dashboard", "A gauge per pillar showing completion rate (requirements done &amp; verified ÷ requirements), grouped by the 3 GPS layers, plus an overall gauge. Red &lt; 50%, amber 50–89%, green ≥ 90%. Also: Bronze-ready banner, KPI tiles, pillar table, needs-attention list, owners, links to each pillar sheet."],
+               ["Pillar sheets", "LEAD, EHS, FSQ, AM, PM, VO, E&amp;T, IM, SC. Section 1 = the official Bronze requirements for that pillar (owner, start, due, scheduled duration, scheduled hours, status, evidence, verification, health) with a 16-week schedule bar. Section 2 = a working log built for the pillar."],
+               ["Working logs", "AM: equipment, equipment type, area/line, operators trained, open tags · PM: asset/zone/role, equipment type, Limble ref, PM compliance · LEAD: board, tier, frequency, attendance · EHS: element/program, people trained vs required · FSQ: program element, area, audit score · VO: line, loss type, baseline/target/actual · E&amp;T: person, task/skill, qualified · IM: meeting month, ideas, projects · SC: process, gap score, gaps found/closed. Every log row has Bronze Ref, scheduled start, due date, scheduled time (hrs), status and evidence upload."],
+               ["1. Assign", "Pick the Pillar Lead (row 4), then Owner, Start and Due Date for each requirement."],
+               ["2. Plan", "Add log rows: Bronze Ref, task, pillar details (e.g. AM equipment + type), scheduled start, due date, scheduled hours. Requirement progress = log rows done ÷ log rows."],
+               ["3. Upload evidence", "Click <b>Upload ↗</b> (opens the pillar's Teams folder), upload, <i>Copy link</i>, paste in <b>Evidence Link</b>. 'Complete' and Verified 'Yes' only become selectable once a link is pasted."],
+               ["4. Verify", "Verifier sets Verified? = Yes – only then is a requirement or log activity Done."]],
               [1.3 * inch, W - 1.3 * inch]),
-          PageBreak(), P("Bronze Level Tracker – dashboard", "h1"), img("bronze.png", W * 0.48), PageBreak()]
+          PageBreak(), P("Bronze Level Tracker – gauge dashboard", "h1"), img("bronze.png", W * 0.62), PageBreak()]
     # 1 quick start
     s += [P("1. Quick start (first 30 minutes)", "h1"),
           tbl([["Step", "Where", "What to do"],
