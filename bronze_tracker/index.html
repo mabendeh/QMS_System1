@@ -1,0 +1,330 @@
+<title>GPS Bronze Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: plant-floor scoreboard — overall gauge band, a grid of pillar gauges, then the action-item board per pillar */
+:root{
+  --bg:#f3f1ee; --panel:#ffffff; --ink:#1d1a17; --muted:#6b635b; --line:#e2ddd6; --track:#e8e3dc;
+  --bronze:#a8662f; --bronze-soft:#f4e6d8;
+  --good:#2f8a4f; --warn:#c98a12; --bad:#c2412d; --idle:#9a928a;
+  --good-soft:#e3f2e8; --warn-soft:#fbf0d9; --bad-soft:#f8e3df;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#171513; --panel:#211e1b; --ink:#f1ece6; --muted:#a59c92; --line:#36312c; --track:#332e29;
+  --bronze:#d4915a; --bronze-soft:#3a2a1d;
+  --good:#5cbf7d; --warn:#e2ac3f; --bad:#e86e57; --idle:#7d756d;
+  --good-soft:#1d3325; --warn-soft:#3a2f17; --bad-soft:#3d221d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#171513; --panel:#211e1b; --ink:#f1ece6; --muted:#a59c92; --line:#36312c; --track:#332e29;
+  --bronze:#d4915a; --bronze-soft:#3a2a1d;
+  --good:#5cbf7d; --warn:#e2ac3f; --bad:#e86e57; --idle:#7d756d;
+  --good-soft:#1d3325; --warn-soft:#3a2f17; --bad-soft:#3d221d; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+.wrap{max-width:1240px;margin:0 auto;padding-block:20px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:24px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:.01em}
+.eyebrow{font-family:var(--f-display);text-transform:uppercase;letter-spacing:.14em;font-size:13px;color:var(--bronze);font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--bronze);outline-offset:2px}
+
+/* header band */
+.top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px 24px}
+.top h1{font-size:clamp(28px,4vw,40px);font-weight:700;line-height:1.05}
+.top p{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.medal{display:inline-flex;align-items:center;gap:8px;margin-bottom:6px}
+.medal i{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#e9b98a,var(--bronze) 60%,#6e3f19);display:inline-block}
+.overall{display:flex;align-items:center;gap:20px}
+.kpis{display:grid;grid-template-columns:repeat(3,auto);gap:4px 18px;font-size:13px;color:var(--muted)}
+.kpis b{display:block;font-family:var(--f-display);font-size:26px;color:var(--ink);font-weight:600;line-height:1}
+.kpis .k-good b{color:var(--good)} .kpis .k-warn b{color:var(--warn)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:6px 12px;font-size:14px;font-weight:500}
+.btn:hover{border-color:var(--bronze)}
+.btn.primary{background:var(--bronze);border-color:var(--bronze);color:#fff}
+
+/* gauges grid */
+.sectionhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.sectionhead h2{font-size:24px;font-weight:600}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;background:var(--c)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 14px 12px;text-align:left;display:flex;flex-direction:column;gap:6px;transition:border-color .15s,transform .15s}
+.card:hover{border-color:var(--bronze);transform:translateY(-1px)}
+.card.active{border-color:var(--bronze);box-shadow:0 0 0 1px var(--bronze)}
+.card .ch{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.card .code{font-family:var(--f-display);font-weight:700;font-size:22px;letter-spacing:.03em}
+.card .name{font-size:12px;color:var(--muted);text-align:right;line-height:1.2}
+.card svg{width:100%;height:auto;display:block}
+.card .foot{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.pill{font-family:var(--f-display);text-transform:uppercase;letter-spacing:.08em;font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--bad-soft);color:var(--bad);white-space:nowrap}
+.pill.p-warn{background:var(--warn-soft);color:var(--warn)} .pill.p-good{background:var(--good-soft);color:var(--good)} .pill.p-done{background:var(--bronze-soft);color:var(--bronze)}
+.segbar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--track)}
+.segbar i{display:block;height:100%}
+
+/* board */
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filters select,.filters input{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:6px 10px;font-size:14px}
+.pillar{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.pillar-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.pillar-h h3{font-size:22px;font-weight:700}
+.pillar-h h3 small{font-family:var(--f-body);font-size:13px;color:var(--muted);font-weight:500;margin-left:8px;letter-spacing:0}
+.pillar-h .meta{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted)}
+.mini{width:90px;height:6px;border-radius:3px;background:var(--track);overflow:hidden}
+.mini i{display:block;height:100%;background:var(--bronze)}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:820px}
+th{font-family:var(--f-display);text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:var(--muted);text-align:left;font-weight:600;padding:8px 12px;background:color-mix(in srgb,var(--bg) 60%,var(--panel))}
+td{padding:8px 12px;border-top:1px solid var(--line);vertical-align:top}
+td.idx{font-family:var(--f-mono);font-size:12px;color:var(--muted);width:44px;padding-top:12px}
+td.title{min-width:240px}
+td.title .t{font-weight:500}
+tr.st-done td.title .t{color:var(--muted)}
+.status{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.status button{border:0;background:transparent;padding:5px 9px;font-size:12.5px;font-weight:500;color:var(--muted);white-space:nowrap}
+.status button+button{border-left:1px solid var(--line)}
+.status button[aria-pressed="true"].s-not{background:var(--bad-soft);color:var(--bad)}
+.status button[aria-pressed="true"].s-prog{background:var(--warn-soft);color:var(--warn)}
+.status button[aria-pressed="true"].s-done{background:var(--good-soft);color:var(--good)}
+.status button:disabled{cursor:default}
+td input,td textarea{width:100%;border:1px solid transparent;background:transparent;border-radius:5px;padding:5px 7px;font-size:14px}
+td input:hover:not(:disabled),td textarea:hover:not(:disabled){border-color:var(--line)}
+td input:focus,td textarea:focus{border-color:var(--bronze);background:var(--bg);outline:none}
+td textarea{resize:vertical;min-height:32px;line-height:1.35}
+td.owner{width:150px} td.due{width:150px} td.notes{min-width:200px} td.del{width:36px}
+.overdue input{color:var(--bad);font-weight:600}
+.x{border:0;background:transparent;color:var(--muted);font-size:18px;line-height:1;padding:4px 6px;border-radius:4px}
+.x:hover{color:var(--bad);background:var(--bad-soft)}
+.addrow{padding:10px 16px;border-top:1px solid var(--line);display:flex;gap:8px}
+.addrow input{flex:1;min-width:0;border:1px dashed var(--line);background:transparent;border-radius:6px;padding:6px 10px}
+.notice{background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:28px;text-align:center;color:var(--muted)}
+.notice b{color:var(--ink);display:block;font-family:var(--f-display);font-size:20px;margin-bottom:4px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:14px;z-index:20}
+.confirm{display:inline-flex;gap:4px;align-items:center;font-size:12px}
+.confirm button{border:1px solid var(--line);background:var(--panel);border-radius:4px;padding:2px 6px;font-size:12px}
+.confirm .yes{color:var(--bad)}
+@media (max-width:720px){
+  .top{grid-template-columns:1fr}
+  .overall{flex-wrap:wrap}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="medal"><i></i><span class="eyebrow">GPS Pillar · Bronze Level</span></div>
+      <h1>Bronze Level Readiness</h1>
+      <p>Every pillar's bronze requirements in one place. Set each action item to Not started, In progress or Complete, and the gauges update for everyone viewing this page.</p>
+      <div class="actions">
+        <button class="btn" id="exportBtn" hidden>Export CSV</button>
+        <span id="sync" class="num" style="font-size:13px;color:var(--muted);align-self:center"></span>
+      </div>
+    </div>
+    <div class="overall">
+      <div id="overallGauge" style="width:220px;max-width:100%"></div>
+      <div class="kpis num" id="kpis"></div>
+    </div>
+  </header>
+
+  <section style="display:flex;flex-direction:column;gap:12px">
+    <div class="sectionhead">
+      <h2>Pillar gauges</h2>
+      <div class="legend"><span style="--c:var(--bad)">Below 34%</span><span style="--c:var(--warn)">34–66%</span><span style="--c:var(--good)">67% and up</span><span style="--c:var(--bronze)">Bronze achieved</span></div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div style="font-size:12.5px;color:var(--muted)">Gauge score: Complete counts 100%, In progress counts 50%, Not started counts 0%, averaged over the pillar's action items. Click a gauge to show only that pillar below.</div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px">
+    <div class="sectionhead">
+      <h2>Action items</h2>
+      <div class="filters">
+        <label for="fPillar" class="eyebrow" style="color:var(--muted)">Pillar</label>
+        <select id="fPillar"></select>
+        <label for="fStatus" class="eyebrow" style="color:var(--muted)">Status</label>
+        <select id="fStatus">
+          <option value="">All</option><option value="not">Not started</option><option value="prog">In progress</option><option value="done">Complete</option><option value="open">Not complete</option>
+        </select>
+        <input id="fText" type="search" placeholder="Search items or owners">
+      </div>
+    </div>
+    <div id="board" style="display:flex;flex-direction:column;gap:14px"></div>
+  </section>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const PILLARS=[
+  {code:"AM",name:"Autonomous Maintenance"},
+  {code:"PM",name:"Planned Maintenance"},
+  {code:"FSQ",name:"Food Safety & Quality"},
+  {code:"EHS",name:"Environment, Health & Safety"},
+  {code:"LEAD",name:"Leadership"},
+  {code:"E&T",name:"Education & Training"},
+  {code:"VO",name:""},
+  {code:"IM",name:""},
+  {code:"SC",name:"Supply Chain"},
+];
+const STATUS={not:{label:"Not started",w:0},prog:{label:"In progress",w:.5},done:{label:"Complete",w:1}};
+let items=[]; let db=null; let canWrite=true; let loaded=false; let activePillar=""; let pendingDelete=null;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const slug=c=>c.replace(/[^A-Za-z]/g,"").toLowerCase();
+function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2200)}
+
+function stats(list){
+  const n=list.length,c={not:0,prog:0,done:0};
+  list.forEach(i=>c[i.status in STATUS?i.status:"not"]++);
+  const score=n?Math.round(100*(c.done+.5*c.prog)/n):0;
+  return {n,...c,score};
+}
+function band(s,st){if(st&&st.n&&st.done===st.n)return"done";return s>=67?"good":s>=34?"warn":"bad"}
+const bandColor={bad:"var(--bad)",warn:"var(--warn)",good:"var(--good)",done:"var(--bronze)"};
+
+function gauge(score,b,big){
+  // semicircle 0..100, center (100,100), r=78
+  const r=78,cx=100,cy=100,a=Math.PI*(1-score/100);
+  const L=Math.PI*r,dash=(score/100)*L;
+  const nx=cx+Math.cos(a)*(r-16),ny=cy-Math.sin(a)*(r-16);
+  let ticks="";
+  for(let v=0;v<=100;v+=10){const t=Math.PI*(1-v/100),o=r+12,i=v%50?r+8:r+5;ticks+=`<line x1="${cx+Math.cos(t)*i}" y1="${cy-Math.sin(t)*i}" x2="${cx+Math.cos(t)*o}" y2="${cy-Math.sin(t)*o}" stroke="var(--muted)" stroke-width="${v%50?1:1.5}" opacity=".6"/>`}
+  return `<svg viewBox="0 0 200 ${big?126:122}" role="img" aria-label="${score}% bronze readiness">
+    ${ticks}
+    <path d="M${cx-r} ${cy} A${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="var(--track)" stroke-width="14" stroke-linecap="round"/>
+    <path d="M${cx-r} ${cy} A${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="${bandColor[b]}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${dash} ${L}" ${score===0?'opacity="0"':""}/>
+    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="6" fill="var(--ink)"/>
+    <text x="${cx}" y="${cy-26}" text-anchor="middle" fill="var(--ink)" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="${big?34:30}">${score}%</text>
+    <text x="${cx-r}" y="${cy+20}" text-anchor="middle" fill="var(--muted)" font-size="10" font-family="JetBrains Mono,monospace">0</text>
+    <text x="${cx+r}" y="${cy+20}" text-anchor="middle" fill="var(--muted)" font-size="10" font-family="JetBrains Mono,monospace">100</text>
+  </svg>`;
+}
+const pillLabel={bad:"At risk",warn:"Progressing",good:"On track",done:"Bronze ✓"};
+
+function render(){
+  const all=stats(items), ob=band(all.score,all);
+  $("#overallGauge").innerHTML=gauge(all.score,ob,true);
+  $("#kpis").innerHTML=`<div class="k-good"><b>${all.done}</b>Complete</div><div class="k-warn"><b>${all.prog}</b>In progress</div><div><b>${all.not}</b>Not started</div>
+    <div style="grid-column:1/-1;margin-top:6px">${all.n} bronze action items · ${PILLARS.filter(p=>{const s=stats(items.filter(i=>i.pillar===p.code));return s.n&&s.done===s.n}).length} of ${PILLARS.length} pillars at bronze</div>`;
+
+  $("#grid").innerHTML=PILLARS.map(p=>{
+    const s=stats(items.filter(i=>i.pillar===p.code)),b=band(s.score,s),n=s.n||1;
+    return `<button class="card${activePillar===p.code?" active":""}" data-p="${esc(p.code)}" aria-pressed="${activePillar===p.code}">
+      <div class="ch"><span class="code">${esc(p.code)}</span><span class="name">${esc(p.name)}</span></div>
+      ${gauge(s.score,b)}
+      <div class="segbar" aria-hidden="true"><i style="width:${100*s.done/n}%;background:var(--good)"></i><i style="width:${100*s.prog/n}%;background:var(--warn)"></i></div>
+      <div class="foot num"><span>${s.done}/${s.n} complete${s.prog?` · ${s.prog} in progress`:""}</span><span class="pill p-${b}">${pillLabel[b]}</span></div>
+    </button>`}).join("");
+
+  const fp=$("#fPillar");
+  if(!fp.options.length){fp.innerHTML=`<option value="">All pillars</option>`+PILLARS.map(p=>`<option value="${esc(p.code)}">${esc(p.code)}</option>`).join("")}
+  fp.value=activePillar;
+  renderBoard();
+}
+
+function renderBoard(){
+  const board=$("#board");
+  if(!loaded){board.innerHTML=`<div class="notice"><b>${db===false?"Sign in to load the tracker":"Loading action items…"}</b>${db===false?"The shared tracker data is available to signed-in members who can open this page.":"Pulling the latest status for all nine pillars."}</div>`;return}
+  if(!items.length){board.innerHTML=`<div class="notice"><b>No action items yet</b>Add the first bronze requirement under any pillar below.</div>`}
+  const fs=$("#fStatus").value,ft=$("#fText").value.trim().toLowerCase();
+  const today=new Date().toISOString().slice(0,10);
+  const focus=document.activeElement&&document.activeElement.id;
+  const html=PILLARS.filter(p=>!activePillar||p.code===activePillar).map(p=>{
+    const all=items.filter(i=>i.pillar===p.code).sort((a,b)=>(a.order??0)-(b.order??0));
+    const s=stats(all);
+    const rows=all.filter(i=>{
+      if(fs==="open"&&i.status==="done")return false;
+      if(fs&&fs!=="open"&&(i.status||"not")!==fs)return false;
+      if(ft&&!(`${i.title} ${i.owner||""} ${i.notes||""}`.toLowerCase().includes(ft)))return false;
+      return true});
+    if((fs||ft)&&!rows.length)return"";
+    const dis=canWrite?"":"disabled";
+    return `<div class="pillar" id="pl-${slug(p.code)}">
+      <div class="pillar-h"><h3>${esc(p.code)}<small>${esc(p.name)}</small></h3>
+        <div class="meta num"><span>${s.done}/${s.n} complete</span><div class="mini"><i style="width:${s.score}%"></i></div><b style="color:var(--ink)">${s.score}%</b></div></div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>#</th><th>Action item required</th><th>Status</th><th>Owner</th><th>Target date</th><th>Notes / evidence</th><th></th></tr></thead>
+        <tbody>${rows.map((i,k)=>{
+          const st=i.status in STATUS?i.status:"not",od=i.due&&i.due<today&&st!=="done";
+          const del=pendingDelete===i.id?`<span class="confirm">Delete?<button class="yes" data-act="del-yes" data-id="${i.id}">Yes</button><button data-act="del-no">No</button></span>`:`<button class="x" title="Delete item" aria-label="Delete item" data-act="del" data-id="${i.id}" ${dis}>×</button>`;
+          return `<tr class="st-${st}">
+          <td class="idx">${esc(p.code)}-${all.indexOf(i)+1}</td>
+          <td class="title"><div class="t">${esc(i.title)}</div></td>
+          <td><div class="status" role="group" aria-label="Status">${Object.entries(STATUS).map(([k,v])=>`<button class="s-${k}" aria-pressed="${st===k}" data-act="st" data-id="${i.id}" data-v="${k}" ${dis}>${v.label}</button>`).join("")}</div></td>
+          <td class="owner"><input id="o-${i.id}" data-f="owner" data-id="${i.id}" value="${esc(i.owner)}" placeholder="Assign owner" ${dis}></td>
+          <td class="due${od?" overdue":""}"><input id="d-${i.id}" type="date" data-f="due" data-id="${i.id}" value="${esc(i.due)}" ${dis} title="${od?"Past target date":""}"></td>
+          <td class="notes"><textarea id="n-${i.id}" rows="1" data-f="notes" data-id="${i.id}" placeholder="Add note or evidence" ${dis}>${esc(i.notes)}</textarea></td>
+          <td class="del">${canWrite?del:""}</td></tr>`}).join("")}</tbody>
+      </table></div>
+      ${canWrite?`<form class="addrow" data-p="${esc(p.code)}"><input id="add-${slug(p.code)}" placeholder="Add an action item to ${esc(p.code)}" aria-label="New action item for ${esc(p.code)}"><button class="btn" type="submit">Add</button></form>`:""}
+    </div>`}).join("");
+  board.innerHTML+=html||(items.length?`<div class="notice"><b>No items match these filters</b>Clear the status filter or search to see more.</div>`:"");
+  if(focus){const el=document.getElementById(focus);if(el){el.focus();if(el.setSelectionRange&&el.type!=="date"){const l=el.value.length;try{el.setSelectionRange(l,l)}catch(e){}}}}
+}
+
+async function write(id,patch){
+  if(!db)return;
+  try{await db.collection("items").doc(id).update({...patch,updatedAt:new Date().toISOString()})}
+  catch(e){if(e&&e.code==="invalid_argument"){canWrite=false;render();toast("You have view-only access to this tracker")}else toast("Couldn't save. Try again.")}
+}
+
+document.addEventListener("click",e=>{
+  const card=e.target.closest(".card");
+  if(card){const p=card.dataset.p;activePillar=activePillar===p?"":p;render();if(activePillar)document.getElementById("pl-"+slug(p))?.scrollIntoView({behavior:"smooth",block:"start"});return}
+  const b=e.target.closest("[data-act]");if(!b)return;
+  const id=b.dataset.id;
+  if(b.dataset.act==="st"){const it=items.find(i=>i.id===id);if(it&&it.status!==b.dataset.v){it.status=b.dataset.v;render();write(id,{status:b.dataset.v})}}
+  if(b.dataset.act==="del"){pendingDelete=id;renderBoard()}
+  if(b.dataset.act==="del-no"){pendingDelete=null;renderBoard()}
+  if(b.dataset.act==="del-yes"){pendingDelete=null;items=items.filter(i=>i.id!==id);render();db&&db.collection("items").doc(id).delete().then(()=>toast("Item deleted")).catch(()=>toast("Couldn't delete. Try again."))}
+});
+document.addEventListener("change",e=>{
+  const el=e.target;if(!el.dataset||!el.dataset.f)return;
+  const it=items.find(i=>i.id===el.dataset.id);if(!it||(it[el.dataset.f]||"")===el.value)return;
+  it[el.dataset.f]=el.value;write(it.id,{[el.dataset.f]:el.value});if(el.dataset.f==="due")render();
+});
+document.addEventListener("submit",async e=>{
+  const f=e.target.closest(".addrow");if(!f)return;e.preventDefault();
+  const inp=f.querySelector("input"),t=inp.value.trim();if(!t||!db)return;
+  const p=f.dataset.p,same=items.filter(i=>i.pillar===p);
+  const order=same.reduce((m,i)=>Math.max(m,i.order||0),0)+1;
+  inp.value="";
+  try{await db.collection("items").add({pillar:p,title:t,order,status:"not",owner:"",due:"",notes:"",updatedAt:new Date().toISOString()});toast("Item added to "+p)}
+  catch(err){toast(err&&err.code==="quota_exceeded"?"The tracker is full. Delete old items first.":"Couldn't add the item. Try again.")}
+});
+$("#fPillar").addEventListener("change",e=>{activePillar=e.target.value;render()});
+$("#fStatus").addEventListener("change",renderBoard);
+$("#fText").addEventListener("input",renderBoard);
+
+let downloads=null;
+$("#exportBtn").addEventListener("click",async()=>{
+  const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+  const rows=[["Pillar","#","Action item","Status","Owner","Target date","Notes"]];
+  PILLARS.forEach(p=>items.filter(i=>i.pillar===p.code).sort((a,b)=>(a.order??0)-(b.order??0)).forEach((i,k)=>rows.push([p.code,`${p.code}-${k+1}`,i.title,STATUS[i.status||"not"].label,i.owner,i.due,i.notes])));
+  try{await downloads.save({filename:"gps-bronze-tracker.csv",data:rows.map(r=>r.map(q).join(",")).join("\n")})}catch(e){}
+});
+
+render();
+(async()=>{
+  if(!window.claude||!claude.use){db=false;render();return}
+  claude.use("downloads").then(d=>{if(d){downloads=d;$("#exportBtn").hidden=false}});
+  claude.use("user").then(async u=>{if(u){const c=await u.can("data.write");if(c===false){canWrite=false;render()}}});
+  const d=await claude.use("db");
+  if(!d){db=false;render();return}
+  db=d;
+  const timer=setTimeout(()=>{if(!loaded)$("#sync").textContent="Can't reach the tracker data yet. Showing what's loaded."},10000);
+  d.collection("items").onSnapshot(snap=>{
+    items=snap.docs.map(s=>({id:s.id,...s.data()}));
+    if(!snap.metadata.fromCache){loaded=true;clearTimeout(timer);$("#sync").textContent="Live · updated "+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"})}
+    else if(items.length)loaded=true;
+    render();
+  },err=>{clearTimeout(timer);loaded=true;$("#sync").textContent="Live updates stopped. Reopen the page to reconnect.";render()});
+})();
+</script>
